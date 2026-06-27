@@ -1,5 +1,43 @@
 import { useState, useMemo, useEffect } from "react";
-import { Sun, Moon, Shuffle, Trophy, Share2, RefreshCw, ArrowLeftRight, Play, Repeat, Clock, Sparkles, Search, Wand2, Eye, EyeOff, ChevronDown, Check } from "lucide-react";
+import { Sun, Moon, Shuffle, Trophy, Share2, RefreshCw, ArrowLeftRight, Play, Repeat, Clock, Sparkles, Search, Wand2, Eye, EyeOff, ChevronDown, Check, Volume2, VolumeX } from "lucide-react";
+
+/* ---------- Switch-style sound engine (Web Audio, fully synthesized — no assets) ---------- */
+const sfx=(()=>{
+  let ctx:AudioContext|null=null, master:GainNode|null=null, on=true;
+  const ac=()=>{ if(typeof window==="undefined")return null;
+    if(!ctx){ const AC=(window.AudioContext||(window as unknown as {webkitAudioContext:typeof AudioContext}).webkitAudioContext); if(!AC)return null; ctx=new AC(); master=ctx.createGain(); master.gain.value=0.5; master.connect(ctx.destination); }
+    if(ctx.state==="suspended")ctx.resume();
+    return ctx; };
+  const tone=(freq:number,dur:number,type:OscillatorType,vol:number,delay=0,glide?:number)=>{
+    const c=ac(); if(!c||!on||!master)return; const t=c.currentTime+delay;
+    const o=c.createOscillator(), g=c.createGain();
+    o.type=type; o.frequency.setValueAtTime(freq,t);
+    if(glide)o.frequency.exponentialRampToValueAtTime(Math.max(50,glide),t+dur);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.006); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t+dur+0.03);
+  };
+  const noise=(dur:number,vol:number,hp:number,delay=0)=>{
+    const c=ac(); if(!c||!on||!master)return; const t=c.currentTime+delay;
+    const n=Math.max(1,Math.floor(c.sampleRate*dur)); const buf=c.createBuffer(1,n,c.sampleRate); const d=buf.getChannelData(0);
+    for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,2.5);
+    const s=c.createBufferSource(); s.buffer=buf; const f=c.createBiquadFilter(); f.type="highpass"; f.frequency.value=hp;
+    const g=c.createGain(); g.gain.value=vol; s.connect(f); f.connect(g); g.connect(master); s.start(t);
+  };
+  return {
+    resume(){ac();},
+    setOn(v:boolean){on=v; if(v)ac();},
+    isOn(){return on;},
+    tap(){tone(740,0.05,"triangle",0.15); noise(0.018,0.05,2400);},                         // crisp nav click
+    select(){tone(620,0.05,"triangle",0.16); tone(1040,0.08,"triangle",0.14,0.045); noise(0.018,0.04,2000);}, // confirm
+    toggle(){tone(560,0.05,"sine",0.14); tone(840,0.06,"sine",0.11,0.04);},
+    place(){tone(300,0.09,"sine",0.18,0,210); noise(0.03,0.06,1100);},                       // soft thunk
+    reel(){noise(0.016,0.045,2600); tone(1500,0.014,"square",0.035);},                        // reel tick
+    lock(){tone(700,0.05,"triangle",0.19); tone(1080,0.1,"triangle",0.16,0.05); noise(0.02,0.05,1800);}, // reel stop
+    success(){[523.25,659.25,783.99,1046.5].forEach((f,i)=>tone(f,0.22,"triangle",0.15,i*0.08));},
+    fanfare(){[523,659,784,1046,1318].forEach((f,i)=>tone(f,0.32,"triangle",0.16,i*0.1)); noise(0.5,0.025,3200,0.05);},
+    thud(){tone(190,0.26,"sine",0.15,0,120);},
+  };
+})();
 
 
 /* ---------- types ---------- */
@@ -30,8 +68,8 @@ const ROSTERS:Roster[]=[
 /* ARSENAL */
 {club:"ARS",era:"90s",note:"Graham & early Wenger",players:[P("seaman","David Seaman",["GK"],[],86,"keeper"),P("adams","Tony Adams",["CB"],[],85,"wall"),P("keown","Martin Keown",["CB"],[],81,"wall"),P("dixon","Lee Dixon",["RB"],[],80,"fullback"),P("vieira","Patrick Vieira ('99)",["CM","CDM"],[],85,"engine"),P("platt","David Platt",["CM","CAM"],[],82,"box2box"),P("overmars","Marc Overmars",["LW"],["RW"],84,"pace"),P("bergkamp","Dennis Bergkamp",["CF","CAM"],["ST"],88,"creator"),P("wright","Ian Wright",["ST"],[],84,"poacher")]},
 {club:"ARS",era:"00s",note:"The Invincibles",players:[P("lehmann","Jens Lehmann",["GK"],[],85,"keeper"),P("solcampbell","Sol Campbell ('04)",["CB"],[],85,"wall"),P("kolo","Kolo Touré",["CB"],["RB"],83,"wall"),P("ashleycole","Ashley Cole ('06)",["LB"],[],85,"fullback"),P("vieira","Patrick Vieira ('04)",["CM","CDM"],[],88,"engine"),P("fabregas","Cesc Fàbregas ('08)",["CM","CAM"],[],86,"playmaker"),P("pires","Robert Pirès",["LW","CAM"],[],85,"creator"),P("ljungberg","Freddie Ljungberg",["RM","RW"],["CAM"],82,"winger"),P("rvp","Robin van Persie ('08)",["ST"],["LW"],84,"complete"),P("adebayor","Emmanuel Adebayor",["ST"],[],82,"power"),P("henry","Thierry Henry ('04)",["ST"],["LW"],91,"complete",true)]},
-  {club:"ARS",era:"10s",note:"Wenger's nearly-men",players:[P("cech","Petr Čech",["GK"],[],85,"keeper"),P("mertesacker","Per Mertesacker",["CB"],[],81,"wall"),P("koscielny","Laurent Koscielny",["CB"],[],83,"wall"),P("monreal","Nacho Monreal",["LB"],["CB"],80,"fullback"),P("bellerin","Héctor Bellerín",["RB"],[],81,"fullback"),P("cazorla","Santi Cazorla",["CM","CAM"],[],84,"playmaker"),P("ozil","Mesut Özil ('16)",["CAM"],[],86,"playmaker"),P("walcott","Theo Walcott",["RW","ST"],[],80,"pace"),P("sanchez","Alexis Sánchez ('17)",["LW","ST"],["RW"],86,"complete"),P("aubameyang","Aubameyang ('19)",["ST"],["LW"],85,"pace"),P("giroud","Olivier Giroud",["ST"],[],82,"power"),P("wilshere","Jack Wilshere",["CM","CAM"],[],80,"playmaker")]},
-{club:"ARS",era:"20s",note:"Arteta's rebuild",players:[P("raya","David Raya",["GK"],[],84,"sweeperk"),P("saliba","William Saliba",["CB"],[],85,"ballplayer"),P("gabriel","Gabriel Magalhães",["CB"],[],84,"wall"),P("calafiori","Riccardo Calafiori",["CB","LB"],[],83,"ballplayer"),P("hincapie","Piero Hincapié",["CB","LB"],[],82,"wall"),P("timber","Jurriën Timber",["RB","CB"],[],83,"fullback"),P("zubimendi","Martín Zubimendi",["CDM"],["CM"],84,"anchor"),P("rice","Declan Rice",["CDM","CM"],[],86,"anchor"),P("merino","Mikel Merino",["CM"],["CAM"],83,"box2box"),P("odegaard","Martin Ødegaard",["CAM"],["CM"],87,"playmaker"),P("saka","Bukayo Saka",["RW"],["LW"],87,"winger"),P("martinelli","Gabriel Martinelli",["LW"],["ST"],83,"pace"),P("gyokeres","Viktor Gyökeres",["ST"],[],85,"poacher")]},
+  {club:"ARS",era:"10s",note:"Wenger's nearly-men",players:[P("cech","Petr Čech",["GK"],[],85,"keeper"),P("mertesacker","Per Mertesacker",["CB"],[],81,"wall"),P("koscielny","Laurent Koscielny",["CB"],[],83,"wall"),P("monreal","Nacho Monreal",["LB"],["CB"],80,"fullback"),P("bellerin","Héctor Bellerín",["RB"],[],81,"fullback"),P("cazorla","Santi Cazorla",["CM","CAM"],[],84,"playmaker"),P("ozil","Mesut Özil ('16)",["CAM"],[],87,"playmaker"),P("walcott","Theo Walcott",["RW","ST"],[],80,"pace"),P("sanchez","Alexis Sánchez ('17)",["LW","ST"],["RW"],87,"complete"),P("aubameyang","Aubameyang ('19)",["ST"],["LW"],85,"pace"),P("giroud","Olivier Giroud",["ST"],[],84,"power"),P("wilshere","Jack Wilshere",["CM","CAM"],[],80,"playmaker")]},
+{club:"ARS",era:"20s",note:"Arteta's rebuild",players:[P("raya","David Raya",["GK"],[],84,"sweeperk"),P("saliba","William Saliba",["CB"],[],85,"ballplayer"),P("gabriel","Gabriel Magalhães",["CB"],[],84,"wall"),P("calafiori","Riccardo Calafiori",["CB","LB"],[],83,"ballplayer"),P("hincapie","Piero Hincapié",["CB","LB"],[],82,"wall"),P("timber","Jurriën Timber",["RB","CB"],[],83,"fullback"),P("zubimendi","Martín Zubimendi",["CDM"],["CM"],84,"anchor"),P("rice","Declan Rice",["CDM","CM"],[],88,"anchor"),P("merino","Mikel Merino",["CM"],["CAM"],83,"box2box"),P("odegaard","Martin Ødegaard",["CAM"],["CM"],87,"playmaker"),P("saka","Bukayo Saka",["RW"],["LW"],87,"winger"),P("martinelli","Gabriel Martinelli",["LW"],["ST"],83,"pace"),P("gyokeres","Viktor Gyökeres",["ST"],[],85,"poacher")]},
 /* MAN UNITED */
 {club:"MUN",era:"90s",note:"Treble winners",players:[P("schmeichel","Peter Schmeichel",["GK"],[],90,"keeper"),P("stam","Jaap Stam",["CB"],[],88,"wall"),P("bruce","Steve Bruce",["CB"],[],82,"wall"),P("gneville","Gary Neville",["RB"],[],81,"fullback"),P("irwin","Denis Irwin",["LB"],["RB"],82,"fullback"),P("keane","Roy Keane",["CM","CDM"],[],88,"engine"),P("scholes","Paul Scholes",["CM"],["CAM"],85,"playmaker"),P("beckham","David Beckham",["RM","CM"],[],85,"winger"),P("giggs","Ryan Giggs",["LW","LM"],[],86,"winger"),P("cantona","Eric Cantona ('96)",["CF","ST"],[],88,"creator"),P("yorke","Dwight Yorke",["ST"],[],83,"poacher"),P("cole","Andy Cole",["ST"],[],84,"poacher"),P("sheringham","Teddy Sheringham",["ST","CF"],[],83,"creator")]},
 {club:"MUN",era:"00s",note:"Ronaldo & Rooney",players:[P("vandersar","Edwin van der Sar",["GK"],[],88,"keeper"),P("ferdinand","Rio Ferdinand",["CB"],[],86,"ballplayer"),P("vidic","Nemanja Vidić",["CB"],[],85,"wall"),P("evra","Patrice Evra",["LB"],[],82,"fullback"),P("carrick","Michael Carrick",["CM","CDM"],[],82,"playmaker"),P("scholes","Paul Scholes ('07)",["CM"],["CAM"],85,"playmaker"),P("giggs","Ryan Giggs ('08)",["LW","LM"],[],84,"winger"),P("park","Ji-Sung Park",["LM","RM"],["CM"],80,"engine"),P("rooney","Wayne Rooney ('08)",["ST","CAM"],[],87,"complete"),P("tevez","Carlos Tévez",["ST"],[],84,"power"),P("cr7","Cristiano Ronaldo ('08)",["LW","ST"],["RW"],90,"complete",true)]},
@@ -127,7 +165,7 @@ const ROSTERS:Roster[]=[
 {club:"NAP",era:"20s",note:"2023 scudetto",players:[P("meret","Alex Meret",["GK"],[],83,"keeper"),P("kim","Kim Min-jae",["CB"],[],84,"sweeper"),P("dilorenzo","Giovanni Di Lorenzo",["RB"],[],82,"fullback"),P("lobotka","Stanislav Lobotka",["CDM"],["CM"],83,"anchor"),P("anguissa","Zambo Anguissa",["CM"],["CDM"],82,"box2box"),P("mctominay","Scott McTominay",["CM"],["CAM"],84,"box2box"),P("kdb","Kevin De Bruyne ('25)",["CAM"],["CM"],85,"playmaker"),P("zielinski","Piotr Zieliński",["CAM"],["CM"],83,"playmaker"),P("kvara","Khvicha Kvaratskhelia",["LW"],[],87,"magician"),P("osimhen","Victor Osimhen",["ST"],[],87,"power"),P("lukaku","Romelu Lukaku ('24)",["ST"],[],83,"power"),P("hojlund","Rasmus Højlund ('25)",["ST"],[],80,"poacher")]},
 /* AC MILAN */
 {club:"MIL",era:"90s",note:"The immortals",players:[P("rossi","Sebastiano Rossi",["GK"],[],84,"keeper"),P("baresi","Franco Baresi",["CB"],[],90,"ballplayer"),P("maldini","Paolo Maldini",["LB","CB"],[],89,"fullback"),P("boban","Zvonimir Boban",["CM"],["CDM"],84,"box2box"),P("costacurta","Alessandro Costacurta",["CB"],[],83,"wall"),P("desailly","Marcel Desailly ('96)",["CDM","CB"],[],87,"anchor"),P("donadoni","Roberto Donadoni",["RM","CM"],[],82,"winger"),P("savicevic","Dejan Savićević",["CAM"],["RW"],84,"magician"),P("vanbasten","Marco van Basten",["ST"],[],90,"poacher"),P("weah","George Weah ('96)",["ST"],[],86,"complete")]},
-{club:"MIL",era:"00s",note:"2007 kings of Europe",players:[P("dida","Dida",["GK"],[],85,"keeper"),P("nesta","Alessandro Nesta ('07)",["CB"],[],87,"wall"),P("maldini","Paolo Maldini ('05)",["CB","LB"],[],88,"ballplayer"),P("pirlo","Andrea Pirlo ('07)",["CDM","CM"],[],88,"playmaker"),P("gattuso","Gennaro Gattuso",["CDM"],["CM"],83,"anchor"),P("ambrosini","Massimo Ambrosini",["CM"],["CDM"],81,"engine"),P("seedorf","Clarence Seedorf",["CM","CAM"],[],85,"box2box"),P("kaka","Kaká",["CAM"],["CM"],89,"magician"),P("ronaldinho","Ronaldinho ('09)",["LW","CAM"],[],84,"magician"),P("beckham","David Beckham ('09)",["RM","CM"],[],83,"winger"),P("sheva","Andriy Shevchenko",["ST"],[],88,"complete"),P("pinzaghi","Filippo Inzaghi",["ST"],[],85,"poacher")]},
+{club:"MIL",era:"00s",note:"2007 kings of Europe",players:[P("dida","Dida",["GK"],[],85,"keeper"),P("nesta","Alessandro Nesta ('07)",["CB"],[],87,"wall"),P("maldini","Paolo Maldini ('05)",["CB","LB"],[],88,"ballplayer"),P("pirlo","Andrea Pirlo ('07)",["CDM","CM"],[],88,"playmaker"),P("gattuso","Gennaro Gattuso",["CDM"],["CM"],83,"anchor"),P("ambrosini","Massimo Ambrosini",["CM"],["CDM"],81,"engine"),P("seedorf","Clarence Seedorf",["CM","CAM"],[],85,"box2box"),P("kaka","Kaká",["CAM"],["CM"],90,"magician"),P("ronaldinho","Ronaldinho ('09)",["LW","CAM"],[],84,"magician"),P("beckham","David Beckham ('09)",["RM","CM"],[],83,"winger"),P("sheva","Andriy Shevchenko",["ST"],[],88,"complete"),P("pinzaghi","Filippo Inzaghi",["ST"],[],85,"poacher")]},
 {club:"MIL",era:"10s",note:"The lean years",players:[P("abbiati","Christian Abbiati",["GK"],[],82,"keeper"),P("thiagosilva","Thiago Silva ('11)",["CB"],[],84,"ballplayer"),P("vanbommel","Mark van Bommel",["CDM"],["CM"],82,"anchor"),P("seedorf","Clarence Seedorf ('11)",["CM","CAM"],[],84,"box2box"),P("bonaventura","Giacomo Bonaventura",["CM","CAM"],[],82,"box2box"),P("elshaarawy","Stephan El Shaarawy",["LW"],["ST"],81,"pace"),P("robinho","Robinho ('11)",["LW","ST"],["RW"],81,"magician"),P("balotelli","Mario Balotelli ('13)",["ST"],[],83,"power"),P("zlatan","Zlatan Ibrahimović ('11)",["ST"],[],86,"power")]},
 {club:"MIL",era:"20s",note:"2022 scudetto",players:[P("maignan","Mike Maignan ('22)",["GK"],[],85,"keeper"),P("tomori","Fikayo Tomori",["CB"],[],83,"sweeper"),P("theo","Theo Hernández",["LB"],[],84,"fullback"),P("tonali","Sandro Tonali",["CM"],["CDM"],82,"box2box"),P("bennacer","Ismaël Bennacer",["CM"],["CDM"],79,"engine"),P("pulisic","Christian Pulisic",["RW","LW"],["CAM"],84,"winger"),P("leao","Rafael Leão",["LW"],[],86,"pace"),P("zlatan","Zlatan Ibrahimović ('21)",["ST"],[],83,"power"),P("giroud","Olivier Giroud ('22)",["ST"],[],82,"power")]},
 /* INTER */
@@ -181,7 +219,7 @@ const ROSTERS:Roster[]=[
 const FORMATIONS:Record<string,Role[]>={
 "4-3-3 (Balance)":["GK","LB","CB","CB","RB","CM","CM","CM","LW","ST","RW"],
 "4-3-3 (Attack)":["GK","LB","CB","CB","RB","CM","CM","CAM","LW","ST","RW"],
-"4-3-3 (Defence)":["GK","LB","CB","CB","RB","CDM","CDM","CM","LW","ST","RW"],
+"4-3-3 (Defence)":["GK","LB","CB","CB","RB","CDM","CDM","CAM","LW","ST","RW"],
 "4-3-3 (Holding)":["GK","LB","CB","CB","RB","CDM","CM","CM","LW","ST","RW"],
 "4-4-2":["GK","LB","CB","CB","RB","LM","CM","CM","RM","ST","ST"],
 "4-2-3-1":["GK","LB","CB","CB","RB","CDM","CDM","LM","CAM","RM","ST"],
@@ -198,6 +236,16 @@ const FORMATION_ROWS:Record<string,number[]>={
 "3-5-2":[1,3,5,2],
 "5-4-1":[1,5,4,1]};
 const FORM_MOD:Record<string,{att:number;mid:number;def:number}>={"4-3-3 (Balance)":{att:1.08,mid:1.02,def:.98},"4-3-3 (Attack)":{att:1.14,mid:1,def:.9},"4-3-3 (Defence)":{att:.98,mid:1.04,def:1.08},"4-3-3 (Holding)":{att:1.04,mid:1.08,def:1.02},"4-4-2":{att:1.06,mid:1.02,def:1},"4-2-3-1":{att:1.04,mid:1.08,def:1.05},"3-5-2":{att:1.05,mid:1.12,def:.97},"5-4-1":{att:.9,mid:1.02,def:1.14}};
+/* difficulty: dominance ceiling per level (tuned by Monte-Carlo so an elite squad hits ~25/10/2% 38-0,
+   while a weak squad stays ~0% because the boost is gated by squad strength) */
+const DIFF_DOM:Record<string,number>={easy:0.95,medium:1.1,hard:1.35};
+/* spin shaping per difficulty: pfScale=rubber-band strength, strBias=skew toward strong(+)/weak(-),
+   iconMult=affinity for icon-bearing rosters, floor=uniform blend so no difficulty is fully deterministic */
+const DIFF_SPIN:Record<string,{pfScale:number;strBias:number;iconMult:number;floor:number}>={easy:{pfScale:0,strBias:3.2,iconMult:2.4,floor:0},medium:{pfScale:1,strBias:0.5,iconMult:1.2,floor:0.05},hard:{pfScale:1.6,strBias:-1.3,iconMult:1,floor:0.12}};
+const DIFFS:{id:"easy"|"medium"|"hard";label:string;emoji:string;desc:string}[]=[
+{id:"easy",label:"Easy",emoji:"🍼",desc:"Premium spins, icons everywhere, no rubber-band · build well and 38-0 is a real shot (~25%)."},
+{id:"medium",label:"Medium",emoji:"⚖️",desc:"Balanced spins · a perfect 38-0 season is a genuine challenge (~10% at your best)."},
+{id:"hard",label:"Hard",emoji:"💀",desc:"Lean spins, no mercy, no rubber-band relief · 38-0 is a rare feat (~2% even at your best)."}];
 const UNIT:Record<string,Unit>={GK:"gk",LB:"def",RB:"def",CB:"def",LWB:"def",RWB:"def",CDM:"mid",CM:"mid", WB:"mid",CAM:"mid",LM:"mid",RM:"mid",LW:"att",RW:"att",ST:"att",CF:"att"};
 const unitOf=(r:string):Unit=>UNIT[r];
 const WB_NATURAL: Role[] = ['LWB', 'RWB'];
@@ -236,7 +284,7 @@ const cn=(n:string)=>n.replace(/\s*\([^)]*\)/g,"").trim();
 function poisson(l:number){const L=Math.exp(-l);let k=0,pr=1;do{k++;pr*=Math.random();}while(pr>L);return k-1;}
 const rosterStrength=(r:Roster)=>{const s=r.players.map(p=>p.ov).sort((a,b)=>b-a).slice(0,7);return s.reduce((a,b)=>a+b,0)/s.length;};
 function chemistry(placed:(Player|null)[]){let chem=0;const icons=placed.filter(p=>p&&p.ic).length;chem+=Math.min(6,icons*2);const g:Record<string,number>={};placed.forEach(p=>{if(p&&p._src){const k=p._src.club+p._src.era;g[k]=(g[k]||0)+1;}});let cl=0;Object.values(g).forEach(k=>{if(k>=2)cl+=(k-1);});chem+=Math.min(6,cl);return{chem,icons};}
-function simulate(slots:Slot[],formation:string):SimResult{const filled=slots.filter(s=>s.player);const bu:Record<Unit,number[]>={gk:[],def:[],mid:[],att:[]};filled.forEach(s=>bu[unitOf(s.role)].push(roleFit(s.player!,s.role)));const avg=(a:number[])=>a.length?a.reduce((x,y)=>x+y,0)/a.length:35;const mod=FORM_MOD[formation];const gk=avg(bu.gk),def=avg(bu.def)*mod.def,mid=avg(bu.mid)*mod.mid,att=avg(bu.att)*mod.att;const{chem,icons}=chemistry(filled.map(s=>s.player));const attackWeights: Record<string, [number, number]> = {
+function simulate(slots:Slot[],formation:string,diff:string="medium"):SimResult{const filled=slots.filter(s=>s.player);const bu:Record<Unit,number[]>={gk:[],def:[],mid:[],att:[]};filled.forEach(s=>bu[unitOf(s.role)].push(roleFit(s.player!,s.role)));const avg=(a:number[])=>a.length?a.reduce((x,y)=>x+y,0)/a.length:35;const mod=FORM_MOD[formation];const gk=avg(bu.gk),def=avg(bu.def)*mod.def,mid=avg(bu.mid)*mod.mid,att=avg(bu.att)*mod.att;const{chem,icons}=chemistry(filled.map(s=>s.player));const attackWeights: Record<string, [number, number]> = {
   '4-3-3':   [0.70, 0.30],
   '4-4-2':   [0.68, 0.32],  
   '4-2-3-1': [0.65, 0.35],  
@@ -244,7 +292,7 @@ function simulate(slots:Slot[],formation:string):SimResult{const filled=slots.fi
   '5-4-1':   [0.60, 0.40],  
 };
   const [aw, maw] = attackWeights[formation] ?? [0.70, 0.30];
-  const attack = att * aw + mid * maw; const defenseWeights: Record<string, [number, number, number]> = {
+  let attack = att * aw + mid * maw; const defenseWeights: Record<string, [number, number, number]> = {
     '4-3-3':   [0.60, 0.25, 0.15],
     '4-4-2':   [0.58, 0.24, 0.18],  
     '4-2-3-1': [0.55, 0.23, 0.22],  
@@ -252,7 +300,7 @@ function simulate(slots:Slot[],formation:string):SimResult{const filled=slots.fi
     '5-4-1':   [0.65, 0.26, 0.09],  
   };
   const [dw, gkw, mdw] = defenseWeights[formation] ?? [0.60, 0.25, 0.15];
-  const defense = def * dw + gk * gkw + mid * mdw;;let W=0,D=0,Lo=0,GF=0,GA=0;const log:{gf:number;ga:number;res:string}[]=[];for(let i=0;i<38;i++){const roll = Math.random();
+  let defense = def * dw + gk * gkw + mid * mdw;const _ovs=filled.map(s=>s.player!.ov);const _avgOV=_ovs.length?_ovs.reduce((a,b)=>a+b,0)/_ovs.length:70;const _quality=Math.max(0,Math.min(1,(_avgOV-83)/10));const _boost=1+(DIFF_DOM[diff]??DIFF_DOM.medium)*_quality;attack*=_boost;defense*=_boost;let W=0,D=0,Lo=0,GF=0,GA=0;const log:{gf:number;ga:number;res:string}[]=[];for(let i=0;i<38;i++){const roll = Math.random();
   const oppBase = roll < 0.15 ? 60 + Math.random() * 10 : roll < 0.70 ? 70 + Math.random() * 12 : roll < 0.92 ? 82 + Math.random() * 8 : 90 + Math.random() * 6; const oppAtk = Math.min(99, oppBase + (Math.random() * 10 - 5)); const oppDef = Math.min(99, oppBase + (Math.random() * 10 - 5));const lf = 1.5  * Math.pow(attack / oppDef, 1.7);
   const la = 1.32 * Math.pow(oppAtk / defense, 2.11) - Math.min(0.12, icons * 0.02);const gf=Math.min(7,poisson(lf)),ga=Math.min(7,poisson(la));GF+=gf;GA+=ga;let res;if(gf>ga){W++;res="W";}else if(gf===ga){D++;res="D";}else{Lo++;res="L";}log.push({gf,ga,res});}return{W,D,Lo,GF,GA,pts:W*3+D,log,chem,icons,units:{gk,def,mid,att}};}
 function bestXI(pool:Player[],formation:string):Slot[]{const uniq:Record<string,Player>={};pool.forEach(p=>{if(!uniq[p.id]||p.ov>uniq[p.id].ov)uniq[p.id]=p;});const players=Object.values(uniq);const roles:Slot[]=FORMATIONS[formation].map((r,i)=>({idx:i,role:r,player:null}));const order=[...roles].sort((a,b)=>(({gk:0,att:1,def:2,mid:3} as Record<Unit,number>)[unitOf(a.role)]-({gk:0,att:1,def:2,mid:3} as Record<Unit,number>)[unitOf(b.role)]));const used=new Set<string>();order.forEach(slot=>{let best:Player|null=null,bf=-1;players.forEach(p=>{if(used.has(p.id))return;const f=roleFit(p,slot.role);if(f>bf){bf=f;best=p;}});if(best){used.add((best as Player).id);roles[slot.idx].player=best;}});return roles;}
@@ -275,7 +323,22 @@ function useIsMobile(bp=760){
 export default function App(){
   const[theme,setTheme]=useState<"dark"|"light">("dark");
   const[phase,setPhase]=useState<"menu"|"play"|"results">("menu");
-  const[hard,setHard]=useState(false);
+  const[diff,setDiff]=useState<"easy"|"medium"|"hard">("easy");
+  const[showStats,setShowStats]=useState(true);
+  const[soundOn,setSoundOn]=useState(true);
+  useEffect(()=>{sfx.setOn(soundOn);},[soundOn]);
+  useEffect(()=>{
+    const h=(e:MouseEvent)=>{
+      const el=(e.target as HTMLElement)?.closest?.("button,[data-sfx]") as HTMLElement|null;
+      if(!el||el.hasAttribute("disabled"))return;
+      sfx.resume();
+      const kind=el.getAttribute("data-sfx")||"tap";
+      const fn=(sfx as unknown as Record<string,()=>void>)[kind];
+      if(typeof fn==="function")fn();
+    };
+    document.addEventListener("click",h);
+    return()=>document.removeEventListener("click",h);
+  },[]);
   const[formation,setFormation]=useState("4-3-3 (Balance)");
   const[formMenuOpen,setFormMenuOpen]=useState(false);
   const[slots,setSlots]=useState<Slot[]>(()=>FORMATIONS["4-3-3 (Balance)"].map((r,i)=>({idx:i,role:r,player:null})));
@@ -293,9 +356,10 @@ export default function App(){
   const[copied,setCopied]=useState(false);
 
   const dark=theme==="dark";
-  const t=dark?{bg1:"#0a0e1a",bg2:"#1a1140",bg3:"#0d2b3e",text:"#f2f5ff",sub:"rgba(242,245,255,.6)",glass:"rgba(255,255,255,.07)",glassB:"rgba(255,255,255,.14)",chip:"rgba(255,255,255,.1)"}:{bg1:"#dfe9ff",bg2:"#f3e9ff",bg3:"#e0fbff",text:"#0d1330",sub:"rgba(13,19,48,.55)",glass:"rgba(255,255,255,.55)",glassB:"rgba(255,255,255,.7)",chip:"rgba(255,255,255,.6)"};
+  const t=dark?{bg1:"#0a0e1a",bg2:"#1a1140",bg3:"#0d2b3e",text:"#f2f5ff",sub:"rgba(242,245,255,.6)",glass:"rgba(255,255,255,.07)",glassB:"rgba(255,255,255,.14)",chip:"rgba(255,255,255,.1)"}:{bg1:"#dfe9ff",bg2:"#f3e9ff",bg3:"#e0fbff",text:"#0d1330",sub:"rgba(13,19,48,.72)",glass:"rgba(255,255,255,.55)",glassB:"rgba(255,255,255,.7)",chip:"rgba(255,255,255,.6)"};
   const glass={background:t.glass,backdropFilter:"blur(20px) saturate(160%)",WebkitBackdropFilter:"blur(20px) saturate(160%)",border:"1px solid "+t.glassB,boxShadow:dark?"0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.12)":"0 8px 32px rgba(60,80,160,.18), inset 0 1px 0 rgba(255,255,255,.8)"};
-  const sc=(v:number)=>v>=86?"#5de0c4":v>=81?(dark?"#b4a8ff":"#6b4fff"):t.text;
+  const accT=dark?"#5de0c4":"#0a7a63";const accP=dark?"#b4a8ff":"#6b4fff";
+  const sc=(v:number)=>v>=86?accT:v>=81?accP:t.text;
 
   const filledCount=slots.filter(s=>s.player).length;
   const allFull=filledCount===11;
@@ -304,8 +368,18 @@ export default function App(){
   const rosterOf=(c:string,e:string)=>ROSTERS.find(r=>r.club===c&&r.era===e);
   const squadPower=useMemo(()=>{const pl=slots.filter(s=>s.player).map(s=>s.player!);if(!pl.length)return 0;return pl.reduce((a,p)=>a+p.ov,0)/pl.length+pl.filter(p=>p.ic).length*1.5;},[slots]);
 
-  function wClub(){const pf=Math.max(0,(squadPower-84)/10);const cs=Object.keys(CLUB_ERAS);const w=cs.map(c=>{const best=Math.max(...CLUB_ERAS[c].map(e=>rosterStrength(rosterOf(c,e)!)));return 1/(1+pf*Math.max(0,(best-74)/7));});const tot=w.reduce((a,b)=>a+b,0);let r=Math.random()*tot;for(let i=0;i<cs.length;i++){r-=w[i];if(r<=0)return cs[i];}return cs[0];}
-  function wEra(club:string,ex?:string){const pf=Math.max(0,(squadPower-84)/10);const es=CLUB_ERAS[club].filter(e=>e!==ex);const pool=es.length?es:CLUB_ERAS[club];const w=pool.map(e=>1/(1+pf*Math.max(0,(rosterStrength(rosterOf(club,e)!)-74)/7)));const tot=w.reduce((a,b)=>a+b,0);let r=Math.random()*tot;for(let i=0;i<pool.length;i++){r-=w[i];if(r<=0)return pool[i];}return pool[0];}
+  const clubBest=(c:string)=>Math.max(...CLUB_ERAS[c].map(e=>rosterStrength(rosterOf(c,e)!)));
+  const clubHasIcon=(c:string)=>CLUB_ERAS[c].some(e=>rosterOf(c,e)!.players.some(p=>p.ic));
+  const eraHasIcon=(c:string,e:string)=>rosterOf(c,e)!.players.some(p=>p.ic);
+  const spinWeight=(B:number,hasIcon:boolean,pf:number,cfg:{pfScale:number;strBias:number;iconMult:number;floor:number})=>{
+    const sn=Math.max(0,Math.min(1,(B-81)/8));
+    const rubber=1/(1+pf*cfg.pfScale*Math.max(0,(B-74)/7));
+    const skew=cfg.strBias>=0?Math.pow(0.18+sn,cfg.strBias):Math.pow(0.18+(1-sn),-cfg.strBias);
+    return rubber*skew*(hasIcon?cfg.iconMult:1);
+  };
+  const pickWeighted=(items:string[],raw:number[],floor:number)=>{const tot=raw.reduce((a,b)=>a+b,0)||1;const u=1/items.length;const w=raw.map(x=>(1-floor)*(x/tot)+floor*u);const wt=w.reduce((a,b)=>a+b,0);let r=Math.random()*wt;for(let i=0;i<items.length;i++){r-=w[i];if(r<=0)return items[i];}return items[0];};
+  function wClub(){const cfg=DIFF_SPIN[diff]||DIFF_SPIN.medium;const pf=Math.max(0,(squadPower-84)/10);const cs=Object.keys(CLUB_ERAS);const raw=cs.map(c=>spinWeight(clubBest(c),clubHasIcon(c),pf,cfg));return pickWeighted(cs,raw,cfg.floor);}
+  function wEra(club:string,ex?:string){const cfg=DIFF_SPIN[diff]||DIFF_SPIN.medium;const pf=Math.max(0,(squadPower-84)/10);const es=CLUB_ERAS[club].filter(e=>e!==ex);const pool=es.length?es:CLUB_ERAS[club];const raw=pool.map(e=>spinWeight(rosterStrength(rosterOf(club,e)!),eraHasIcon(club,e),pf,cfg));return pickWeighted(pool,raw,cfg.floor);}
 
   function start(){setPhase("play");setSlots(FORMATIONS[formation].map((r,i)=>({idx:i,role:r,player:null})));setSpin(null);setSpinning(false);setReelClub(null);setReelEra(null);setUsedClub(false);setUsedEra(false);setSel(null);setMoving(null);setResult(null);setOffered([]);setQuery("");}
 
@@ -342,33 +416,34 @@ export default function App(){
     if(spinning||allFull)return;
     setSel(null);setMoving(null);setSpin(null);setSpinning(true);
     const ck=Object.keys(CLUBS);let n=0;const total=16+Math.floor(Math.random()*6);
-    const iv=setInterval(()=>{const rc=ck[Math.floor(Math.random()*ck.length)];setReelClub(rc);setReelEra(CLUB_ERAS[rc][Math.floor(Math.random()*CLUB_ERAS[rc].length)]);n++;if(n>=total){clearInterval(iv);const c=wClub();const e=wEra(c);setReelClub(c);setReelEra(e);setTimeout(()=>revealRoster(c,e),120);}},65);
+    const iv=setInterval(()=>{const rc=ck[Math.floor(Math.random()*ck.length)];setReelClub(rc);setReelEra(CLUB_ERAS[rc][Math.floor(Math.random()*CLUB_ERAS[rc].length)]);sfx.reel();n++;if(n>=total){clearInterval(iv);const c=wClub();const e=wEra(c);setReelClub(c);setReelEra(e);sfx.lock();setTimeout(()=>revealRoster(c,e),120);}},65);
   }
   function changeClub(){
     if(usedClub||!spin||spinning)return;
     const opts=Object.keys(CLUB_ERAS).filter(c=>c!==spin.club&&CLUB_ERAS[c].includes(spin.era));
     if(!opts.length)return;setUsedClub(true);setSel(null);setSpin(null);setSpinning(true);
-    let n=0;const iv=setInterval(()=>{setReelClub(opts[Math.floor(Math.random()*opts.length)]);n++;if(n>=12){clearInterval(iv);const c=opts[Math.floor(Math.random()*opts.length)];setReelClub(c);setTimeout(()=>revealRoster(c,reelEra??spin.era),100);}},65);
+    let n=0;const iv=setInterval(()=>{setReelClub(opts[Math.floor(Math.random()*opts.length)]);sfx.reel();n++;if(n>=12){clearInterval(iv);const c=opts[Math.floor(Math.random()*opts.length)];setReelClub(c);sfx.lock();setTimeout(()=>revealRoster(c,reelEra??spin.era),100);}},65);
   }
   function changeEra(){
     if(usedEra||!spin||spinning)return;
     const opts=CLUB_ERAS[spin.club].filter(e=>e!==spin.era);
     if(!opts.length)return;setUsedEra(true);setSel(null);const club=spin.club;setSpin(null);setSpinning(true);
-    let n=0;const iv=setInterval(()=>{setReelEra(opts[Math.floor(Math.random()*opts.length)]);n++;if(n>=12){clearInterval(iv);const e=opts[Math.floor(Math.random()*opts.length)];setReelEra(e);setTimeout(()=>revealRoster(club,e),100);}},65);
+    let n=0;const iv=setInterval(()=>{setReelEra(opts[Math.floor(Math.random()*opts.length)]);sfx.reel();n++;if(n>=12){clearInterval(iv);const e=opts[Math.floor(Math.random()*opts.length)];setReelEra(e);sfx.lock();setTimeout(()=>revealRoster(club,e),100);}},65);
   }
 
   function selectPlayer(p:Player){if(usedIds.has(p.id))return;setMoving(null);setSel(sel&&sel.id===p.id?null:p);}
   function placeInSlot(slot:Slot){
     if(moving){
       if(slot.idx===moving.idx){setMoving(null);return;}
-      if(!slot.player){ if(fitClass(moving.player,slot.role)){setSlots(s=>s.map(sl=>sl.idx===slot.idx?{...sl,player:moving.player}:sl.idx===moving.idx?{...sl,player:null}:sl));setMoving(null);} return;}
-      if(fitClass(moving.player,slot.role)&&fitClass(slot.player,moving.role)){setSlots(s=>s.map(sl=>sl.idx===slot.idx?{...sl,player:moving.player}:sl.idx===moving.idx?{...sl,player:slot.player}:sl));setMoving(null);}
+      if(!slot.player){ if(fitClass(moving.player,slot.role)){setSlots(s=>s.map(sl=>sl.idx===slot.idx?{...sl,player:moving.player}:sl.idx===moving.idx?{...sl,player:null}:sl));setMoving(null);sfx.place();} return;}
+      if(fitClass(moving.player,slot.role)&&fitClass(slot.player,moving.role)){setSlots(s=>s.map(sl=>sl.idx===slot.idx?{...sl,player:moving.player}:sl.idx===moving.idx?{...sl,player:slot.player}:sl));setMoving(null);sfx.place();}
       return;
     }
     if(!sel)return;
     if(slot.player||!fitClass(sel,slot.role))return;
     const src=spin?{club:spin.club,era:spin.era}:sel._src;
     setSlots(s=>s.map(sl=>sl.idx===slot.idx?{...sl,player:{...sel,_src:src}}:sl));
+    sfx.place();
     setSel(null);setSpin(null);setReelClub(null);setReelEra(null);setQuery(""); // <-- clears the spin so the Spin button returns
   }
   function changeFormation(nf:string){
@@ -376,8 +451,8 @@ export default function App(){
     players.forEach(pl=>{let done=false;for(const s of ns)if(!s.player&&pl.b.includes(s.role)){s.player=pl;done=true;break;}if(!done)for(const s of ns)if(!s.player&&pl.o.includes(s.role)){s.player=pl;done=true;break;}if(!done)for(const s of ns)if(!s.player&&pl.b.concat(pl.o).some(r=>unitOf(r)===unitOf(s.role))){s.player=pl;done=true;break;}});
     setSlots(ns);setSel(null);setMoving(null);
   }
-  function runSeason(){setResult(simulate(slots,formation));setPhase("results");}
-  const oracle=useMemo(()=>{if(phase!=="results"||offered.length<11)return null;const xi=bestXI(offered,formation);if(xi.some(s=>!s.player))return null;return simulate(xi,formation);},[phase,offered,formation]);
+  function runSeason(){const r=simulate(slots,formation,diff);setResult(r);setPhase("results");setTimeout(()=>{if(r.W===38)sfx.fanfare();else if(r.Lo===0||r.pts>=90)sfx.success();else sfx.thud();},140);}
+  const oracle=useMemo(()=>{if(phase!=="results"||offered.length<11)return null;const xi=bestXI(offered,formation);if(xi.some(s=>!s.player))return null;return simulate(xi,formation,diff);},[phase,offered,formation,diff]);
 
   function verdict(r:SimResult){if(r.W===38)return{title:"THE IMPOSSIBLE SEASON",sub:"38-0. The greatest team ever assembled.",tier:"legend"};if(r.Lo===0&&r.D<=4)return{title:"INVINCIBLES",sub:"Unbeaten — but the perfect record slipped away.",tier:"gold"};if(r.pts>=90)return{title:"CHAMPIONS",sub:"A dominant, title-winning campaign.",tier:"gold"};if(r.pts>=75)return{title:"TITLE CHALLENGERS",sub:"So close. Rebalance and run it back.",tier:"silver"};if(r.pts>=55)return{title:"EUROPEAN NIGHTS",sub:"Solid — but not invincible.",tier:"silver"};return{title:"REBUILDING",sub:"The squad needs balance across the pitch.",tier:"bronze"};}
   function share(){if(!result)return;const v=verdict(result);const xi=slots.map(s=>s.role+": "+(s.player?cn(s.player.n):"—")).join("\n");const txt="⚽ 38-0 — "+v.title+"\n"+result.W+"-"+result.D+"-"+result.Lo+" · "+result.pts+" pts · GF "+result.GF+"/GA "+result.GA+" · "+formation+"\n\n"+xi+"\n\nChase the impossible 38-0.";if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),1800);});}
@@ -419,46 +494,48 @@ export default function App(){
         <Logo size={42}/>
         <div style={{display:"flex",gap:8}}>
           {phase!=="menu"&&<button onClick={()=>setPhase("menu")} style={{...glass,borderRadius:14,padding:"9px 14px",color:t.text,fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}><RefreshCw size={15}/> New game</button>}
+          <button onClick={()=>{const v=!soundOn;setSoundOn(v);sfx.setOn(v);}} title={soundOn?"Mute sounds":"Unmute sounds"} style={{...glass,borderRadius:14,padding:10,color:t.text,cursor:"pointer",display:"flex"}}>{soundOn?<Volume2 size={17}/>:<VolumeX size={17}/>}</button>
           <button onClick={()=>setTheme(dark?"light":"dark")} style={{...glass,borderRadius:14,padding:10,color:t.text,cursor:"pointer",display:"flex"}}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button>
         </div>
       </div>
 
       {phase==="menu"&&(
       <div style={{...glass,borderRadius:28,padding:"34px 26px",maxWidth:640,margin:"20px auto 0",textAlign:"center"}}>
-        <Sparkles size={30} style={{color:"#9b8cff",marginBottom:8}}/>
+        <Sparkles size={30} style={{color:accP,marginBottom:8}}/>
         <h1 style={{ fontSize: 29, fontWeight: 900, margin: '0 0 8px', color: dark ? '#F2F5FF' : t.text }}>Can you go unbeaten?</h1>
         <p style={{color:t.sub,fontSize:14.5,lineHeight:1.6,margin:"0 0 24px"}}>Spin a club & era, pick one player into your XI, and build a balanced, high-chemistry side. Simulate 38 games and chase <b style={{color:t.text}}>38 wins, 0 defeats.</b></p>
         <div style={{display:"grid",gap:13,textAlign:"left",marginBottom:22}}>
-          <div style={{...glass,borderRadius:16,padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:"none"}}><div><div style={{fontWeight:700,fontSize:14}}>Difficulty (locked for the game)</div><div style={{color:t.sub,fontSize:12.5}}>{hard?"Hard — stats & overalls hidden.":"Easy — overalls & stats visible."}</div></div><button onClick={()=>setHard(!hard)} style={{background:hard?"linear-gradient(135deg,#ff8c6b,#ff5d8f)":"linear-gradient(135deg,#5de0c4,#3aa0ff)",border:"none",borderRadius:12,padding:"9px 14px",color:"#06121f",fontWeight:800,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>{hard?<EyeOff size={15}/>:<Eye size={15}/>}{hard?"Hard":"Easy"}</button></div>
+          <div style={{...glass,borderRadius:16,padding:"14px 16px",boxShadow:"none"}}><div style={{fontWeight:700,fontSize:14,marginBottom:10}}>Difficulty (locked for the game)</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{DIFFS.map(d=><button key={d.id} onClick={()=>setDiff(d.id)} style={{flex:"1 1 0",minWidth:96,borderRadius:11,padding:"9px 10px",fontSize:13,fontWeight:800,cursor:"pointer",border:diff===d.id?"1.5px solid #9b8cff":"1px solid "+t.glassB,background:diff===d.id?"rgba(155,140,255,.22)":t.chip,color:t.text,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><span style={{fontSize:15}}>{d.emoji}</span>{d.label}</button>)}</div><div style={{color:t.sub,fontSize:12.5,marginTop:9}}>{DIFFS.find(d=>d.id===diff)?.desc}</div></div>
+          <div style={{...glass,borderRadius:16,padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:"none"}}><div><div style={{fontWeight:700,fontSize:14}}>Player stats</div><div style={{color:t.sub,fontSize:12.5}}>{showStats?"Overalls & stats visible.":"Overalls & stats hidden — pick on names alone."}</div></div><button onClick={()=>setShowStats(s=>!s)} style={{background:showStats?"linear-gradient(135deg,#5de0c4,#3aa0ff)":t.chip,border:showStats?"none":"1px solid "+t.glassB,borderRadius:12,padding:"9px 14px",color:showStats?"#06121f":t.text,fontWeight:800,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>{showStats?<Eye size={15}/>:<EyeOff size={15}/>}{showStats?"Shown":"Hidden"}</button></div>
           <div style={{...glass,borderRadius:16,padding:"14px 16px",boxShadow:"none"}}><div style={{fontWeight:700,fontSize:14,marginBottom:10}}>Starting formation</div><div style={{display:"flex",flexWrap:"wrap",gap:8}}>
             <div style={{position:"relative"}}>
               <button onClick={()=>setFormMenuOpen(o=>!o)} style={{borderRadius:11,padding:"8px 13px",fontSize:13,fontWeight:700,cursor:"pointer",border:is433?"1.5px solid #9b8cff":"1px solid "+t.glassB,background:is433?"rgba(155,140,255,.22)":t.chip,color:t.text,display:"flex",alignItems:"center",gap:6}}>4-3-3{is433?" · "+variantOf(formation):""}<ChevronDown size={14} style={{transform:formMenuOpen?"rotate(180deg)":"none",transition:"transform .15s"}}/></button>
               {formMenuOpen&&<>
                 <div onClick={()=>setFormMenuOpen(false)} style={{position:"fixed",inset:0,zIndex:30}}/>
                 <div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:31,minWidth:172,background:dark?"#161a2e":"#ffffff",border:"1px solid "+t.glassB,borderRadius:12,padding:6,boxShadow:"0 14px 32px rgba(0,0,0,.4)",display:"grid",gap:3}}>
-                  {forms433.map(f=><button key={f} onClick={()=>{setFormation(f);setFormMenuOpen(false);}} style={{textAlign:"left",borderRadius:8,padding:"9px 11px",fontSize:13,fontWeight:700,cursor:"pointer",border:"none",background:formation===f?"rgba(155,140,255,.22)":"transparent",color:t.text,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>{variantOf(f)}{formation===f&&<Check size={14} style={{color:"#9b8cff"}}/>}</button>)}
+                  {forms433.map(f=><button key={f} onClick={()=>{setFormation(f);setFormMenuOpen(false);}} style={{textAlign:"left",borderRadius:8,padding:"9px 11px",fontSize:13,fontWeight:700,cursor:"pointer",border:"none",background:formation===f?"rgba(155,140,255,.22)":"transparent",color:t.text,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>{variantOf(f)}{formation===f&&<Check size={14} style={{color:accP}}/>}</button>)}
                 </div>
               </>}
             </div>
             {formsOther.map(f=><button key={f} onClick={()=>setFormation(f)} style={{borderRadius:11,padding:"8px 13px",fontSize:13,fontWeight:700,cursor:"pointer",border:formation===f?"1.5px solid #9b8cff":"1px solid "+t.glassB,background:formation===f?"rgba(155,140,255,.22)":t.chip,color:t.text}}>{f}</button>)}
           </div></div>
         </div>
-        <button onClick={start} style={{width:"100%",background:"linear-gradient(135deg,#9b8cff,#5de0c4)",border:"none",borderRadius:16,padding:16,color:"#06121f",fontWeight:900,fontSize:17,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:"0 8px 24px rgba(155,140,255,.35)"}}><Play size={19}/> Start the chase</button>
+        <button onClick={start} data-sfx="select" style={{width:"100%",background:"linear-gradient(135deg,#9b8cff,#5de0c4)",border:"none",borderRadius:16,padding:16,color:"#06121f",fontWeight:900,fontSize:17,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:"0 8px 24px rgba(155,140,255,.35)"}}><Play size={19}/> Start the chase</button>
         <p style={{color:t.sub,fontSize:11,marginTop:14,lineHeight:1.5}}>118 squads across 5 leagues & 5 eras · 8 game-winning icons (incl. Maradona & Lewandowski). Representative stats; stylised crests.</p>
       </div>)}
 
       {phase==="play"&&(
       <div style={{display:"grid",gap:14}}>
         <div style={{...glass,borderRadius:18,padding:"12px 16px",display:"flex",flexWrap:"wrap",gap:12,alignItems:"center",justifyContent:"space-between"}}>
-          <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}><span style={{fontSize:12.5,color:t.sub}}>Formation</span><select value={formation} onChange={e=>changeFormation(e.target.value)} style={{background:t.chip,color:t.text,border:"1px solid "+t.glassB,borderRadius:10,padding:"7px 10px",fontSize:13,fontWeight:700,cursor:"pointer"}}>{Object.keys(FORMATIONS).map(f=><option key={f} value={f} style={{color:"#000"}}>{f}</option>)}</select><span style={{fontSize:12,color:t.sub,padding:"4px 10px",borderRadius:8,background:t.chip}}>{hard?"Hard":"Easy"} mode</span></div>
-          <div style={{display:"flex",alignItems:"center",gap:10}}><div style={{fontSize:13,fontWeight:800}}>{filledCount}<span style={{color:t.sub,fontWeight:600}}>/11</span></div>{allFull&&<button onClick={runSeason} style={{background:"linear-gradient(135deg,#5de0c4,#3aa0ff)",border:"none",borderRadius:12,padding:"10px 16px",color:"#06121f",fontWeight:900,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",gap:6,boxShadow:"0 6px 18px rgba(93,224,196,.35)"}}><Trophy size={16}/> Simulate season</button>}</div>
+          <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}><span style={{fontSize:12.5,color:t.sub}}>Formation</span><select value={formation} onChange={e=>changeFormation(e.target.value)} style={{background:t.chip,color:t.text,border:"1px solid "+t.glassB,borderRadius:10,padding:"7px 10px",fontSize:13,fontWeight:700,cursor:"pointer"}}>{Object.keys(FORMATIONS).map(f=><option key={f} value={f} style={{color:"#000"}}>{f}</option>)}</select><span style={{fontSize:12,color:t.sub,padding:"4px 10px",borderRadius:8,background:t.chip,display:"inline-flex",alignItems:"center",gap:5}}>{DIFFS.find(d=>d.id===diff)?.emoji} {DIFFS.find(d=>d.id===diff)?.label}</span><button onClick={()=>setShowStats(s=>!s)} title="Toggle overalls & stats" style={{fontSize:12,fontWeight:700,color:t.text,padding:"4px 10px",borderRadius:8,background:t.chip,border:"1px solid "+t.glassB,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:5}}>{showStats?<Eye size={13}/>:<EyeOff size={13}/>}{showStats?"Stats":"Hidden"}</button></div>
+          <div style={{display:"flex",alignItems:"center",gap:10}}><div style={{fontSize:13,fontWeight:800}}>{filledCount}<span style={{color:t.sub,fontWeight:600}}>/11</span></div>{allFull&&<button onClick={runSeason} data-sfx="select" style={{background:"linear-gradient(135deg,#5de0c4,#3aa0ff)",border:"none",borderRadius:12,padding:"10px 16px",color:"#06121f",fontWeight:900,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",gap:6,boxShadow:"0 6px 18px rgba(93,224,196,.35)"}}><Trophy size={16}/> Simulate season</button>}</div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"minmax(0,1.15fr) minmax(0,1fr)",gap:14,alignItems:"start"}}>
           {/* PITCH */}
           <div style={{...glass,borderRadius:24,padding:"16px 10px",minHeight:470,position:"relative",background:dark?"linear-gradient(160deg, rgba(30,80,60,.3), rgba(255,255,255,.05))":"linear-gradient(160deg, rgba(140,210,170,.35), rgba(255,255,255,.5))"}}>
             <div style={{position:"absolute",top:"50%",left:10,right:10,height:1,background:t.glassB}}/>
             <div style={{position:"absolute",top:"50%",left:"50%",width:56,height:56,border:"1px solid "+t.glassB,borderRadius:"50%",transform:"translate(-50%,-50%)"}}/>
-            {highlight&&<div style={{position:"absolute",top: 'auto', bottom: 8, left: 0, right: 0, textAlign: 'center', fontSize: 11.5, fontWeight: 700, color: '#5de0c4'}}>{moving?"Tap a glowing slot to move/swap ":"Tap a glowing slot to place "}{cn(highlight.n).split(" ").pop()}</div>}
+            {highlight&&<div style={{position:"absolute",top: 'auto', bottom: 8, left: 0, right: 0, textAlign: 'center', fontSize: 11.5, fontWeight: 700, color:accT}}>{moving?"Tap a glowing slot to move/swap ":"Tap a glowing slot to place "}{cn(highlight.n).split(" ").pop()}</div>}
             {slotRows.map((group,ri)=>(
             <div key={ri} style={{display:"flex",justifyContent:"center",gap:mob?4:6,margin:"13px 0",flexWrap:"nowrap"}}>
               {group.map(s=>{
@@ -470,7 +547,7 @@ export default function App(){
                   <div style={{fontSize:9.5,fontWeight:800,color:t.sub}}>{s.role}</div>
                   {s.player?(<>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:2,marginTop:2}}><div style={{fontSize:11,fontWeight:800,lineHeight:1.05,maxWidth:"100%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cn(s.player.n).split(" ").slice(-1)[0]}</div></div>
-                    {!hard&&<div style={{fontSize:12.5,fontWeight:900,color:s.player.ov>=88?"#5de0c4":t.text,marginTop:1}}>{s.player.ov}</div>}
+                    {showStats&&<div style={{fontSize:12.5,fontWeight:900,color:s.player.ov>=88?accT:t.text,marginTop:1}}>{s.player.ov}</div>}
                     <button onClick={e=>{e.stopPropagation();setSel(null);setMoving(moving&&moving.idx===s.idx?null:{idx:s.idx,role:s.role,player:s.player});}} style={{marginTop:2,background:moving&&moving.idx===s.idx?"#c08cff":t.chip,border:"1px solid "+t.glassB,borderRadius:6,padding:"1px 5px",cursor:"pointer",color:moving&&moving.idx===s.idx?"#06121f":t.text,display:"inline-flex",alignItems:"center",gap:2,fontSize:9,fontWeight:700}}><ArrowLeftRight size={9}/> move</button>
                   </>):<div style={{fontSize:20,color:ring||t.sub,marginTop:11,fontWeight:300}}>+</div>}
                 </div>);
@@ -491,7 +568,7 @@ export default function App(){
             </div>
             {!spin&&<button onClick={spin1} disabled={spinning||allFull} style={{width:"100%",background:spinning||allFull?t.chip:"linear-gradient(135deg,#9b8cff,#5de0c4)",border:"none",borderRadius:14,padding:14,color:spinning||allFull?t.sub:"#06121f",fontWeight:900,fontSize:15,cursor:spinning||allFull?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><Shuffle size={17} className={spinning?"spin":""}/> {allFull?"Squad complete":spinning?"Spinning…":"Spin"}</button>}
             {spin&&(<>
-              <div style={{fontSize:11.5,color:"#9b8cff",fontWeight:700,fontStyle:"italic",textAlign:"center",margin:"2px 0 8px"}}>{roster?.note} · {CLUBS[spin.club].league}</div>
+              <div style={{fontSize:11.5,color:accP,fontWeight:700,fontStyle:"italic",textAlign:"center",margin:"2px 0 8px"}}>{roster?.note} · {CLUBS[spin.club].league}</div>
               <div style={{display:"flex",gap:8,marginBottom:10}}>
                 <button onClick={changeClub} disabled={usedClub} style={{flex:1,background:usedClub?t.chip:"rgba(155,140,255,.18)",border:"1px solid "+(usedClub?t.glassB:"rgba(155,140,255,.5)"),borderRadius:11,padding:8,color:usedClub?t.sub:t.text,fontSize:11.5,fontWeight:700,cursor:usedClub?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}><Repeat size={13}/> {usedClub?"Club used":"Re-spin club"}</button>
                 <button onClick={changeEra} disabled={usedEra} style={{flex:1,background:usedEra?t.chip:"rgba(93,224,196,.16)",border:"1px solid "+(usedEra?t.glassB:"rgba(93,224,196,.5)"),borderRadius:11,padding:8,color:usedEra?t.sub:t.text,fontSize:11.5,fontWeight:700,cursor:usedEra?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}><Clock size={13}/> {usedEra?"Era used":"Re-spin era"}</button>
@@ -505,10 +582,10 @@ export default function App(){
                   }}
                   >
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:800,fontSize:13,display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{cn(pl.n)}{taken&&<span style={{color:"#5de0c4",fontSize:10}}>· in squad</span>}</div>
+                    <div style={{fontWeight:800,fontSize:13,display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{cn(pl.n)}{taken&&<span style={{color:accT,fontSize:10}}>· in squad</span>}</div>
                     <div style={{display:"flex",gap:3,marginTop:3,flexWrap:"wrap"}}>{pl.b.map(r=><span key={r} style={{fontSize:9,fontWeight:800,padding:"1px 5px",borderRadius:5,background:"rgba(93,224,196,.2)",color:dark?"#5de0c4":"#0a7a63"}}>{r}</span>)}{pl.o.map(r=><span key={r} style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:5,background:t.chip,color:t.sub}}>{r}</span>)}</div>
                   </div>
-                  {!hard&&<div style={{display:"flex",alignItems:"center",gap:8}}>
+                  {showStats&&<div style={{display:"flex",alignItems:"center",gap:8}}>
                     <div style={{display:"flex",gap:6}}>{statsOf(pl).map(st=><div key={st.l} style={{textAlign:"center",minWidth:26}}><div style={{fontWeight:800,fontSize:12,color:sc(st.v)}}>{st.v}</div><div style={{fontSize:8,color:t.sub,fontWeight:700}}>{st.l}</div></div>)}</div>
                     <div style={{
                       width: 42, height: 48, borderRadius: 10,
@@ -538,7 +615,7 @@ export default function App(){
           <p style={{color:t.sub,fontSize:14,margin:"8px 0 20px",position:"relative"}}>{v.sub}</p>
           <div style={{display:"flex",justifyContent:"center",gap:10,flexWrap:"wrap",position:"relative"}}>{[["Record",result.W+"-"+result.D+"-"+result.Lo],["Points",result.pts],["Scored",result.GF],["Conceded",result.GA],["Chemistry",Math.round(result.chem)],["Icons",result.icons]].map(([l,val])=><div key={l} style={{...glass,boxShadow:"none",borderRadius:14,padding:"11px 15px",minWidth:78}}><div style={{fontSize:21,fontWeight:900}}>{val}</div><div style={{fontSize:10,color:t.sub,fontWeight:700,textTransform:"uppercase"}}>{l}</div></div>)}</div>
         </div>
-        {oracle&&<div style={{...glass,borderRadius:16,padding:"12px 16px",display:"flex",alignItems:"center",gap:10,fontSize:12.5,color:t.sub}}><Wand2 size={15} style={{color:"#9b8cff"}}/> The Oracle's best possible XI from your spins would have projected <b style={{color:t.text}}>{oracle.W}-{oracle.D}-{oracle.Lo}</b> ({oracle.pts} pts). You scored <b style={{color:t.text}}>{result.pts}</b>.</div>}
+        {oracle&&<div style={{...glass,borderRadius:16,padding:"12px 16px",display:"flex",alignItems:"center",gap:10,fontSize:12.5,color:t.sub}}><Wand2 size={15} style={{color:accP}}/> The Oracle's best possible XI from your spins would have projected <b style={{color:t.text}}>{oracle.W}-{oracle.D}-{oracle.Lo}</b> ({oracle.pts} pts). You scored <b style={{color:t.text}}>{result.pts}</b>.</div>}
         <div style={{...glass,borderRadius:20,padding:"16px 18px"}}>
           <div style={{fontSize:12.5,fontWeight:800,color:t.sub,marginBottom:10}}>SEASON FORM (38 GAMES)</div>
           <div style={{display:"flex",flexWrap:"wrap",gap:4}}>{result.log.map((m,i)=><div key={i} title={m.gf+"-"+m.ga} style={{width:22,height:22,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,color:"#06121f",background:m.res==="W"?"#5de0c4":m.res==="D"?"#ffd86b":"#ff5d8f"}}>{m.res}</div>)}</div>
@@ -550,7 +627,7 @@ export default function App(){
         </div>
         <div style={{display:"flex",gap:10}}>
           <button onClick={start} style={{flex:1,...glass,borderRadius:15,padding:14,color:t.text,fontWeight:800,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><RefreshCw size={17}/> New game</button>
-          <button onClick={share} style={{flex:1,background:"linear-gradient(135deg,#9b8cff,#5de0c4)",border:"none",borderRadius:15,padding:14,color:"#06121f",fontWeight:900,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><Share2 size={17}/> {copied?"Copied!":"Share"}</button>
+          <button onClick={share} data-sfx="select" style={{flex:1,background:"linear-gradient(135deg,#9b8cff,#5de0c4)",border:"none",borderRadius:15,padding:14,color:"#06121f",fontWeight:900,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><Share2 size={17}/> {copied?"Copied!":"Share"}</button>
         </div>
       </div>)}
     </div>
