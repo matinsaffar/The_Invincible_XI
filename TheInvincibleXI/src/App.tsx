@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Sun, Moon, RotateCw, Shuffle, Trophy, Share2, RefreshCw, ArrowLeftRight, Play, Repeat, Clock, Sparkles, Search, Wand2, Eye, EyeOff } from "lucide-react";
 
 
-
+/* ---------- types ---------- */
 type Role = "GK"|"LB"|"CB"|"RB"|"LWB"|"RWB"|"WB"|"CDM"|"CM"|"CAM"|"LM"|"RM"|"LW"|"RW"|"ST"|"CF";
 type Unit = "gk"|"def"|"mid"|"att";
 interface Club { name: string; league: string; c: string[]; }
@@ -16,7 +16,7 @@ interface SimResult {
   units: { gk: number; def: number; mid: number; att: number };
 }
 
-
+/* 38-0 — PL · LaLiga (full) + Ligue 1 · Bundesliga · Serie A (lean). Representative stats; stylised crests. */
 const CLUBS: Record<string, Club> = {
   ARS:{name:"Arsenal",league:"Premier League",c:["#EF0107","#9C824A"]},MUN:{name:"Man United",league:"Premier League",c:["#DA291C","#FBE122"]},MCI:{name:"Man City",league:"Premier League",c:["#6CABDD","#1C2C5B"]},LIV:{name:"Liverpool",league:"Premier League",c:["#C8102E","#00B2A9"]},CHE:{name:"Chelsea",league:"Premier League",c:["#034694","#DBA111"]},TOT:{name:"Tottenham",league:"Premier League",c:["#132257","#ffffff"]},
   OM:{name:"Marseille",league:"Ligue 1",c:["#2FAEE0","#ffffff"]},OL:{name:"Lyon",league:"Ligue 1",c:["#0033A0","#DA291C"]},ASM:{name:"Monaco",league:"Ligue 1",c:["#E51B22","#ffffff"]},LIL:{name:"Lille",league:"Ligue 1",c:["#E01E13","#0a2240"]},PSG:{name:"PSG",league:"Ligue 1",c:["#004170","#DA291C"]},
