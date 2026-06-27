@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Sun, Moon, Shuffle, Trophy, Share2, RefreshCw, ArrowLeftRight, Play, Repeat, Clock, Sparkles, Search, Wand2, Eye, EyeOff } from "lucide-react";
 
 
@@ -242,6 +242,18 @@ function bestXI(pool:Player[],formation:string):Slot[]{const uniq:Record<string,
 function Badge({code,size=44}:{code:string;size?:number}){const cl=CLUBS[code];const[a,b]=cl.c;return(<svg width={size} height={size*1.18} viewBox="0 0 44 52" style={{flexShrink:0}}><defs><linearGradient id={"g"+code} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={a}/><stop offset="1" stopColor={b}/></linearGradient></defs><path d="M2 4 L42 4 L42 30 Q42 44 22 50 Q2 44 2 30 Z" fill={"url(#g"+code+")"} stroke="rgba(255,255,255,.55)" strokeWidth="1.5"/><text x="22" y="27" textAnchor="middle" fontSize="11" fontWeight="800" fill="#fff" style={{paintOrder:"stroke",stroke:"rgba(0,0,0,.4)",strokeWidth:2}}>{code}</text></svg>);}
 function Logo({size=44}:{size?:number}){return(<svg width={size*2.6} height={size} viewBox="0 0 130 50"><defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#9b8cff"/><stop offset="1" stopColor="#5de0c4"/></linearGradient></defs><path d="M5 6 L41 6 L41 30 Q41 44 23 49 Q5 44 5 30 Z" fill="url(#lg1)" opacity="0.18" stroke="url(#lg1)" strokeWidth="1.5"/><circle cx="23" cy="24" r="11" fill="none" stroke="url(#lg1)" strokeWidth="1.4"/><path d="M23 13 L26.5 20.5 L18.5 20.5 Z M16 23 L19 31 L13.5 26 Z M30 23 L27 31 L32.5 26 Z" fill="url(#lg1)"/><text x="52" y="34" fontSize="30" fontWeight="900" fill="url(#lg1)" letterSpacing="-1" fontFamily="ui-sans-serif,system-ui">38-0</text></svg>);}
 
+/* Responsive breakpoint hook — inline styles can't hold media queries, so we branch in JS. */
+function useIsMobile(bp=760){
+  const[m,setM]=useState(typeof window!=="undefined"?window.innerWidth<=bp:false);
+  useEffect(()=>{
+    const onResize=()=>setM(window.innerWidth<=bp);
+    onResize();
+    window.addEventListener("resize",onResize);
+    return()=>window.removeEventListener("resize",onResize);
+  },[bp]);
+  return m;
+}
+
 export default function App(){
   const[theme,setTheme]=useState<"dark"|"light">("dark");
   const[phase,setPhase]=useState<"menu"|"play"|"results">("menu");
@@ -363,6 +375,7 @@ export default function App(){
     return false;
   };  
   const rows=[{u:"gk"},{u:"def"},{u:"mid"},{u:"att"}];
+  const mob=useIsMobile(760);
   const roster=spin?rosterOf(spin.club,spin.era):null;
   const filteredPlayers=roster?roster.players.filter(p=>cn(p.n).toLowerCase().includes(query.toLowerCase())):[];
   const highlight=sel||(moving&&moving.player);
@@ -403,23 +416,23 @@ export default function App(){
           <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}><span style={{fontSize:12.5,color:t.sub}}>Formation</span><select value={formation} onChange={e=>changeFormation(e.target.value)} style={{background:t.chip,color:t.text,border:"1px solid "+t.glassB,borderRadius:10,padding:"7px 10px",fontSize:13,fontWeight:700,cursor:"pointer"}}>{Object.keys(FORMATIONS).map(f=><option key={f} value={f} style={{color:"#000"}}>{f}</option>)}</select><span style={{fontSize:12,color:t.sub,padding:"4px 10px",borderRadius:8,background:t.chip}}>{hard?"Hard":"Easy"} mode</span></div>
           <div style={{display:"flex",alignItems:"center",gap:10}}><div style={{fontSize:13,fontWeight:800}}>{filledCount}<span style={{color:t.sub,fontWeight:600}}>/11</span></div>{allFull&&<button onClick={runSeason} style={{background:"linear-gradient(135deg,#5de0c4,#3aa0ff)",border:"none",borderRadius:12,padding:"10px 16px",color:"#06121f",fontWeight:900,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",gap:6,boxShadow:"0 6px 18px rgba(93,224,196,.35)"}}><Trophy size={16}/> Simulate season</button>}</div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1.15fr) minmax(0,1fr)",gap:14,alignItems:"start"}}>
+        <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"minmax(0,1.15fr) minmax(0,1fr)",gap:14,alignItems:"start"}}>
           {/* PITCH */}
           <div style={{...glass,borderRadius:24,padding:"16px 10px",minHeight:470,position:"relative",background:dark?"linear-gradient(160deg, rgba(30,80,60,.3), rgba(255,255,255,.05))":"linear-gradient(160deg, rgba(140,210,170,.35), rgba(255,255,255,.5))"}}>
             <div style={{position:"absolute",top:"50%",left:10,right:10,height:1,background:t.glassB}}/>
             <div style={{position:"absolute",top:"50%",left:"50%",width:56,height:56,border:"1px solid "+t.glassB,borderRadius:"50%",transform:"translate(-50%,-50%)"}}/>
             {highlight&&<div style={{position:"absolute",top: 'auto', bottom: 8, left: 0, right: 0, textAlign: 'center', fontSize: 11.5, fontWeight: 700, color: '#5de0c4'}}>{moving?"Tap a glowing slot to move/swap ":"Tap a glowing slot to place "}{cn(highlight.n).split(" ").pop()}</div>}
             {rows.map(row=>(
-            <div key={row.u} style={{display:"flex",justifyContent:"center",gap:6,margin:"13px 0",flexWrap:"nowrap"}}>
+            <div key={row.u} style={{display:"flex",justifyContent:"center",gap:mob?4:6,margin:"13px 0",flexWrap:"nowrap"}}>
               {slots.filter(s=>unitOf(s.role)===row.u).map(s=>{
                 let ring=null;
                 if(highlight&&!s.player){const fc=fitClass(highlight,s.role);ring=fc==="best"?"#5de0c4":fc==="ok"?"#ffd86b":fc === 'cross'? '#ff9f43':fc==="unit"?"#9b8cff":null;}
                 else if(moving&&s.player&&s.idx!==moving.idx&&fitClass(moving.player,s.role)&&fitClass(s.player,moving.role)){ring="#c08cff";}
                 return(
-                <div key={s.idx} onClick={()=>placeInSlot(s)} style={{width:74,minHeight:74,borderRadius:13,cursor:"pointer",padding:"6px 4px",textAlign:"center",border:ring?"2px solid "+ring:"1.5px "+(s.player?"solid":"dashed")+" "+t.glassB,background:s.player?(dark?"rgba(255,255,255,.1)":"rgba(255,255,255,.72)"):ring?ring+"22":"transparent",boxShadow:ring?"0 0 14px "+ring+"66":"none",transition:"all .15s"}}>
+                <div key={s.idx} onClick={()=>placeInSlot(s)} style={{flex:"1 1 0",minWidth:0,maxWidth:74,minHeight:74,borderRadius:13,cursor:"pointer",padding:"6px 4px",textAlign:"center",overflow:"hidden",border:ring?"2px solid "+ring:"1.5px "+(s.player?"solid":"dashed")+" "+t.glassB,background:s.player?(dark?"rgba(255,255,255,.1)":"rgba(255,255,255,.72)"):ring?ring+"22":"transparent",boxShadow:ring?"0 0 14px "+ring+"66":"none",transition:"all .15s"}}>
                   <div style={{fontSize:9.5,fontWeight:800,color:t.sub}}>{s.role}</div>
                   {s.player?(<>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:2,marginTop:2}}><div style={{fontSize:11,fontWeight:800,lineHeight:1.05}}>{cn(s.player.n).split(" ").slice(-1)[0]}</div></div>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:2,marginTop:2}}><div style={{fontSize:11,fontWeight:800,lineHeight:1.05,maxWidth:"100%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cn(s.player.n).split(" ").slice(-1)[0]}</div></div>
                     {!hard&&<div style={{fontSize:12.5,fontWeight:900,color:s.player.ov>=88?"#5de0c4":t.text,marginTop:1}}>{s.player.ov}</div>}
                     <button onClick={e=>{e.stopPropagation();setSel(null);setMoving(moving&&moving.idx===s.idx?null:{idx:s.idx,role:s.role,player:s.player});}} style={{marginTop:2,background:moving&&moving.idx===s.idx?"#c08cff":t.chip,border:"1px solid "+t.glassB,borderRadius:6,padding:"1px 5px",cursor:"pointer",color:moving&&moving.idx===s.idx?"#06121f":t.text,display:"inline-flex",alignItems:"center",gap:2,fontSize:9,fontWeight:700}}><ArrowLeftRight size={9}/> move</button>
                   </>):<div style={{fontSize:20,color:ring||t.sub,marginTop:11,fontWeight:300}}>+</div>}
