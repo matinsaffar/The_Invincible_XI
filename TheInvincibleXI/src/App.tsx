@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Sun, Moon, Shuffle, Trophy, Share2, RefreshCw, ArrowLeftRight, Play, Repeat, Clock, Sparkles, Search, Wand2, Eye, EyeOff } from "lucide-react";
+import { Sun, Moon, Shuffle, Trophy, Share2, RefreshCw, ArrowLeftRight, Play, Repeat, Clock, Sparkles, Search, Wand2, Eye, EyeOff, ChevronDown, Check } from "lucide-react";
 
 
 /* ---------- types ---------- */
@@ -161,7 +161,7 @@ const ROSTERS:Roster[]=[
 {club:"BAR",era:"10s",note:"MSN & tiki-taka",players:[P("terstegen","Marc-André ter Stegen",["GK"],[],88,"sweeperk"),P("pique","Gerard Piqué",["CB"],[],86,"ballplayer"),P("masche","Javier Mascherano ('15)",["CB","CDM"],[],84,"anchor"),P("alba","Jordi Alba",["LB"],[],84,"fullback"),P("danialves","Dani Alves ('14)",["RB"],[],84,"fullback"),P("busquets","Sergio Busquets ('15)",["CDM"],["CM"],86,"anchor"),P("xavi","Xavi ('11)",["CM"],[],88,"playmaker"),P("iniesta","Andrés Iniesta ('12)",["CM","CAM"],[],88,"magician"),P("rakitic","Ivan Rakitić ('15)",["CM"],["CAM"],85,"playmaker"),P("pedro","Pedro ('12)",["RW","LW"],[],83,"winger"),P("sanchez","Alexis Sánchez ('13)",["RW","ST"],[],83,"pace"),P("bojan","Bojan Krkić",["ST"],["LW"],80,"poacher"),P("messi","Lionel Messi ('12)",["RW","CF"],["CAM"],95,"magician",true),P("suarez","Luis Suárez ('16)",["ST"],[],89,"complete"),P("villa","David Villa ('11)",["ST"],["LW"],85,"complete"),P("neymar","Neymar ('15)",["LW"],["CAM"],88,"magician")]},
 {club:"BAR",era:"20s",note:"Post-Messi to Yamal",players:[P("terstegen","Ter Stegen ('23)",["GK"],[],88,"sweeperk"),P("araujo","Ronald Araújo",["CB"],["RB"],84,"wall"),P("kounde","Jules Koundé",["CB","RB"],[],83,"sweeper"),P("cubarsi","Pau Cubarsí",["CB"],[],80,"ballplayer"),P("balde","Alejandro Balde",["LB"],[],80,"fullback"),P("dejong","Frenkie de Jong",["CM"],["CDM"],84,"box2box"),P("pedri","Pedri",["CAM","CM"],[],85,"playmaker"),P("gavi","Gavi",["CM"],["CAM"],82,"engine"),P("olmo","Dani Olmo ('24)",["CAM"],["ST"],83,"playmaker"),P("lewa","Robert Lewandowski ('23)",["ST"],[],88,"poacher"),P("raphinha","Raphinha",["LW","RW"],[],84,"winger"),P("yamal","Lamine Yamal ('24)",["RW"],[],84,"creator")]},
 /* REAL MADRID */
-{club:"RMA",era:"90s",note:"La Séptima",players:[P("illgner","Bodo Illgner",["GK"],[],82,"keeper"),P("hierro","Fernando Hierro",["CB","CDM"],[],85,"ballplayer"),P("robcarlos","Roberto Carlos ('98)",["LB"],[],87,"fullback"),P("redondo","Fernando Redondo",["CM","CDM"],[],85,"playmaker"),P("seedorf","Clarence Seedorf ('98)",["CM"],["CAM"],83,"box2box"),P("raul","Raúl ('99)",["ST","CF"],[],85,"poacher"),P("raul","Raúl",["ST"],["CF"],87,"poacher"),P("suker","Davor Šuker",["ST"],[],84,"poacher")]},
+{club:"RMA",era:"90s",note:"La Séptima",players:[P("illgner","Bodo Illgner",["GK"],[],82,"keeper"),P("hierro","Fernando Hierro",["CB","CDM"],[],85,"ballplayer"),P("robcarlos","Roberto Carlos ('98)",["LB"],[],87,"fullback"),P("redondo","Fernando Redondo",["CM","CDM"],[],85,"playmaker"),P("seedorf","Clarence Seedorf ('98)",["CM"],["CAM"],83,"box2box"),P("raul","Raúl",["ST"],["CF"],87,"poacher"),P("suker","Davor Šuker",["ST"],[],84,"poacher")]},
 {club:"RMA",era:"00s",note:"The Galácticos",players:[P("casillas","Iker Casillas",["GK"],[],88,"keeper"),P("robcarlos","Roberto Carlos ('03)",["LB"],[],86,"fullback"),P("cannavaro","Fabio Cannavaro ('07)",["CB"],[],86,"wall"),P("ramos","Sergio Ramos ('07 young)",["CB","RB"],[],82,"wall"),P("makelele","Claude Makélélé ('03)",["CDM"],[],84,"anchor"),P("zidane","Zinédine Zidane ('03)",["CAM","CM"],[],92,"magician",true),P("guti","Guti",["CAM","CM"],[],83,"playmaker"),P("figo","Luís Figo ('02)",["RW"],["CAM"],86,"winger"),P("beckham","David Beckham ('05)",["RM","CM"],[],84,"winger"),P("raul","Raúl ('04)",["ST"],[],86,"poacher"),P("r9","Ronaldo Nazário ('03)",["ST"],[],92,"complete",true),P("vannistelrooy","Ruud van Nistelrooy",["ST"],[],87,"poacher")]},
 {club:"RMA",era:"10s",note:"BBC & the three-peat",players:[P("navas","Keylor Navas",["GK"],[],85,"keeper"),P("casillas","Iker Casillas ('13)",["GK"],[],84,"keeper"),P("ramos","Sergio Ramos",["CB"],["RB"],87,"wall"),P("nacho","Nacho",["CB"],["RB"],77,"wall"),P("pepe","Pepe",["CB"],[],84,"wall"),P("varane","Raphaël Varane",["CB"],[],84,"sweeper"),P("marcelo","Marcelo",["LB"],[],86,"fullback"),P("carvajal","Dani Carvajal",["RB"],[],82,"fullback"),P("modric","Luka Modrić ('17)",["CM","CAM"],[],89,"playmaker"),P("xabi","Xabi Alonso",["CM","CDM"],[],85,"playmaker"),P("kroos","Toni Kroos",["CM"],["CDM"],86,"playmaker"),P("casemiro","Casemiro ('17)",["CDM"],[],85,"anchor"),P("isco","Isco",["CAM"],["CM"],84,"creator"),P("ozil","Mesut Özil",["CAM"],[],87,"playmaker"),P("kaka","Kaká",["CAM"],["CM"],83,"magician"),P("dimaria","Ángel Di María",["RW","LW"],["CAM"],84,"winger"),P("benzema","Karim Benzema ('14)",["ST"],[],88,"complete"),P("cr7","Cristiano Ronaldo ('14)",["LW","ST"],[],93,"complete",true),P("bale","Gareth Bale ('14)",["RW"],["ST"],90,"complete")]},
 {club:"RMA",era:"20s",note:"Ancelotti's encore",players:[P("courtois","Thibaut Courtois ('22)",["GK"],[],89,"keeper"),P("militao","Éder Militão",["CB"],[],84,"sweeper"),P("rudiger","Antonio Rüdiger",["CB"],[],84,"wall"),P("alaba","David Alaba",["CB"],["LB"],84,"ballplayer"),P("taa","Trent Alexander-Arnold ('25)",["RB"],[],84,"fullback"),P("modric","Luka Modrić",["CM","CAM"],[],86,"playmaker"),P("valverde","Federico Valverde",["CM"],["RM"],86,"box2box"),P("tchouameni","Aurélien Tchouaméni",["CDM"],["CB"],84,"anchor"),P("kroos","Toni Kroos ('23)",["CM"],["CDM"],90,"playmaker"),P("bellingham","Jude Bellingham ('24)",["CAM","CM"],[],88,"box2box"),P("vini","Vinícius Jr ('24)",["LW"],[],89,"pace"),P("rodrygo","Rodrygo",["RW"],["ST"],84,"pace"),P("benzema","Karim Benzema ('22)",["ST"],[],90,"complete"),P("mbappe","Kylian Mbappé ('24)",["ST","LW"],[],91,"pace")]},
@@ -178,8 +178,26 @@ const ROSTERS:Roster[]=[
 ];
 
 /* ---------- formations ---------- */
-const FORMATIONS:Record<string,Role[]>={"4-3-3":["GK","LB","CB","CB","RB","CM","CM","CM","LW","ST","RW"],"4-4-2":["GK","LB","CB","CB","RB","LM","CM","CM","RM","ST","ST"],"4-2-3-1":["GK","LB","CB","CB","RB","CDM","CDM","CAM","LW","RW","ST"],"3-5-2":["GK","CB","CB","CB","WB","CM","CM","CM","WB","ST","ST"],"5-4-1":["GK","LWB","CB","CB","CB","RWB","LM","CM","CM","RM","ST"]};
-const FORM_MOD:Record<string,{att:number;mid:number;def:number}>={"4-3-3":{att:1.08,mid:1,def:.96},"4-4-2":{att:1.06,mid:1.02,def:1},"4-2-3-1":{att:1.04,mid:1.08,def:1.05},"3-5-2":{att:1.05,mid:1.12,def:.97},"5-4-1":{att:.9,mid:1.02,def:1.14}};
+const FORMATIONS:Record<string,Role[]>={
+"4-3-3 (Balance)":["GK","LB","CB","CB","RB","CM","CM","CM","LW","ST","RW"],
+"4-3-3 (Attack)":["GK","LB","CB","CB","RB","CM","CM","CAM","LW","ST","RW"],
+"4-3-3 (Defence)":["GK","LB","CB","CB","RB","CDM","CDM","CAM","LW","ST","RW"],
+"4-3-3 (Holding)":["GK","LB","CB","CB","RB","CDM","CM","CM","LW","ST","RW"],
+"4-4-2":["GK","LB","CB","CB","RB","LM","CM","CM","RM","ST","ST"],
+"4-2-3-1":["GK","LB","CB","CB","RB","CDM","CDM","LM","CAM","RM","ST"],
+"3-5-2":["GK","CB","CB","CB","WB","CM","CM","CM","WB","ST","ST"],
+"5-4-1":["GK","LWB","CB","CB","CB","RWB","LM","CM","CM","RM","ST"]};
+/* visual row sizes (top GK -> bottom attack); must sum to 11 and match FORMATIONS order */
+const FORMATION_ROWS:Record<string,number[]>={
+"4-3-3 (Balance)":[1,4,3,3],
+"4-3-3 (Attack)":[1,4,2,1,3],
+"4-3-3 (Defence)":[1,4,2,1,3],
+"4-3-3 (Holding)":[1,4,1,2,3],
+"4-4-2":[1,4,4,2],
+"4-2-3-1":[1,4,2,3,1],
+"3-5-2":[1,3,5,2],
+"5-4-1":[1,5,4,1]};
+const FORM_MOD:Record<string,{att:number;mid:number;def:number}>={"4-3-3 (Balance)":{att:1.08,mid:1.02,def:.98},"4-3-3 (Attack)":{att:1.14,mid:1,def:.9},"4-3-3 (Defence)":{att:.98,mid:1.04,def:1.08},"4-3-3 (Holding)":{att:1.04,mid:1.08,def:1.02},"4-4-2":{att:1.06,mid:1.02,def:1},"4-2-3-1":{att:1.04,mid:1.08,def:1.05},"3-5-2":{att:1.05,mid:1.12,def:.97},"5-4-1":{att:.9,mid:1.02,def:1.14}};
 const UNIT:Record<string,Unit>={GK:"gk",LB:"def",RB:"def",CB:"def",LWB:"def",RWB:"def",CDM:"mid",CM:"mid", WB:"mid",CAM:"mid",LM:"mid",RM:"mid",LW:"att",RW:"att",ST:"att",CF:"att"};
 const unitOf=(r:string):Unit=>UNIT[r];
 const WB_NATURAL: Role[] = ['LWB', 'RWB'];
@@ -258,8 +276,9 @@ export default function App(){
   const[theme,setTheme]=useState<"dark"|"light">("dark");
   const[phase,setPhase]=useState<"menu"|"play"|"results">("menu");
   const[hard,setHard]=useState(false);
-  const[formation,setFormation]=useState("4-3-3");
-  const[slots,setSlots]=useState<Slot[]>(()=>FORMATIONS["4-3-3"].map((r,i)=>({idx:i,role:r,player:null})));
+  const[formation,setFormation]=useState("4-3-3 (Balance)");
+  const[formMenuOpen,setFormMenuOpen]=useState(false);
+  const[slots,setSlots]=useState<Slot[]>(()=>FORMATIONS["4-3-3 (Balance)"].map((r,i)=>({idx:i,role:r,player:null})));
   const[spin,setSpin]=useState<{club:string;era:string}|null>(null);
   const[spinning,setSpinning]=useState(false);
   const[reelClub,setReelClub]=useState<string|null>(null);
@@ -374,7 +393,14 @@ export default function App(){
       } 
     return false;
   };  
-  const rows=[{u:"gk"},{u:"def"},{u:"mid"},{u:"att"}];
+  const formationRows=FORMATION_ROWS[formation]||[1,4,3,3];
+  let _ri=0;
+  const slotRows:Slot[][]=formationRows.map(n=>{const g=slots.slice(_ri,_ri+n);_ri+=n;return g;});
+  const allForms=Object.keys(FORMATIONS);
+  const forms433=allForms.filter(f=>f.startsWith("4-3-3"));
+  const formsOther=allForms.filter(f=>!f.startsWith("4-3-3"));
+  const variantOf=(f:string)=>f.match(/\(([^)]+)\)/)?.[1]||f;
+  const is433=formation.startsWith("4-3-3");
   const mob=useIsMobile(760);
   const roster=spin?rosterOf(spin.club,spin.era):null;
   const filteredPlayers=roster?roster.players.filter(p=>cn(p.n).toLowerCase().includes(query.toLowerCase())):[];
@@ -404,7 +430,18 @@ export default function App(){
         <p style={{color:t.sub,fontSize:14.5,lineHeight:1.6,margin:"0 0 24px"}}>Spin a club & era, pick one player into your XI, and build a balanced, high-chemistry side. Simulate 38 games and chase <b style={{color:t.text}}>38 wins, 0 defeats.</b></p>
         <div style={{display:"grid",gap:13,textAlign:"left",marginBottom:22}}>
           <div style={{...glass,borderRadius:16,padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:"none"}}><div><div style={{fontWeight:700,fontSize:14}}>Difficulty (locked for the game)</div><div style={{color:t.sub,fontSize:12.5}}>{hard?"Hard — stats & overalls hidden.":"Easy — overalls & stats visible."}</div></div><button onClick={()=>setHard(!hard)} style={{background:hard?"linear-gradient(135deg,#ff8c6b,#ff5d8f)":"linear-gradient(135deg,#5de0c4,#3aa0ff)",border:"none",borderRadius:12,padding:"9px 14px",color:"#06121f",fontWeight:800,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>{hard?<EyeOff size={15}/>:<Eye size={15}/>}{hard?"Hard":"Easy"}</button></div>
-          <div style={{...glass,borderRadius:16,padding:"14px 16px",boxShadow:"none"}}><div style={{fontWeight:700,fontSize:14,marginBottom:10}}>Starting formation</div><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{Object.keys(FORMATIONS).map(f=><button key={f} onClick={()=>setFormation(f)} style={{borderRadius:11,padding:"8px 13px",fontSize:13,fontWeight:700,cursor:"pointer",border:formation===f?"1.5px solid #9b8cff":"1px solid "+t.glassB,background:formation===f?"rgba(155,140,255,.22)":t.chip,color:t.text}}>{f}</button>)}</div></div>
+          <div style={{...glass,borderRadius:16,padding:"14px 16px",boxShadow:"none"}}><div style={{fontWeight:700,fontSize:14,marginBottom:10}}>Starting formation</div><div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+            <div style={{position:"relative"}}>
+              <button onClick={()=>setFormMenuOpen(o=>!o)} style={{borderRadius:11,padding:"8px 13px",fontSize:13,fontWeight:700,cursor:"pointer",border:is433?"1.5px solid #9b8cff":"1px solid "+t.glassB,background:is433?"rgba(155,140,255,.22)":t.chip,color:t.text,display:"flex",alignItems:"center",gap:6}}>4-3-3{is433?" · "+variantOf(formation):""}<ChevronDown size={14} style={{transform:formMenuOpen?"rotate(180deg)":"none",transition:"transform .15s"}}/></button>
+              {formMenuOpen&&<>
+                <div onClick={()=>setFormMenuOpen(false)} style={{position:"fixed",inset:0,zIndex:30}}/>
+                <div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:31,minWidth:172,background:dark?"#161a2e":"#ffffff",border:"1px solid "+t.glassB,borderRadius:12,padding:6,boxShadow:"0 14px 32px rgba(0,0,0,.4)",display:"grid",gap:3}}>
+                  {forms433.map(f=><button key={f} onClick={()=>{setFormation(f);setFormMenuOpen(false);}} style={{textAlign:"left",borderRadius:8,padding:"9px 11px",fontSize:13,fontWeight:700,cursor:"pointer",border:"none",background:formation===f?"rgba(155,140,255,.22)":"transparent",color:t.text,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>{variantOf(f)}{formation===f&&<Check size={14} style={{color:"#9b8cff"}}/>}</button>)}
+                </div>
+              </>}
+            </div>
+            {formsOther.map(f=><button key={f} onClick={()=>setFormation(f)} style={{borderRadius:11,padding:"8px 13px",fontSize:13,fontWeight:700,cursor:"pointer",border:formation===f?"1.5px solid #9b8cff":"1px solid "+t.glassB,background:formation===f?"rgba(155,140,255,.22)":t.chip,color:t.text}}>{f}</button>)}
+          </div></div>
         </div>
         <button onClick={start} style={{width:"100%",background:"linear-gradient(135deg,#9b8cff,#5de0c4)",border:"none",borderRadius:16,padding:16,color:"#06121f",fontWeight:900,fontSize:17,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:"0 8px 24px rgba(155,140,255,.35)"}}><Play size={19}/> Start the chase</button>
         <p style={{color:t.sub,fontSize:11,marginTop:14,lineHeight:1.5}}>118 squads across 5 leagues & 5 eras · 8 game-winning icons (incl. Maradona & Lewandowski). Representative stats; stylised crests.</p>
@@ -422,9 +459,9 @@ export default function App(){
             <div style={{position:"absolute",top:"50%",left:10,right:10,height:1,background:t.glassB}}/>
             <div style={{position:"absolute",top:"50%",left:"50%",width:56,height:56,border:"1px solid "+t.glassB,borderRadius:"50%",transform:"translate(-50%,-50%)"}}/>
             {highlight&&<div style={{position:"absolute",top: 'auto', bottom: 8, left: 0, right: 0, textAlign: 'center', fontSize: 11.5, fontWeight: 700, color: '#5de0c4'}}>{moving?"Tap a glowing slot to move/swap ":"Tap a glowing slot to place "}{cn(highlight.n).split(" ").pop()}</div>}
-            {rows.map(row=>(
-            <div key={row.u} style={{display:"flex",justifyContent:"center",gap:mob?4:6,margin:"13px 0",flexWrap:"nowrap"}}>
-              {slots.filter(s=>unitOf(s.role)===row.u).map(s=>{
+            {slotRows.map((group,ri)=>(
+            <div key={ri} style={{display:"flex",justifyContent:"center",gap:mob?4:6,margin:"13px 0",flexWrap:"nowrap"}}>
+              {group.map(s=>{
                 let ring=null;
                 if(highlight&&!s.player){const fc=fitClass(highlight,s.role);ring=fc==="best"?"#5de0c4":fc==="ok"?"#ffd86b":fc === 'cross'? '#ff9f43':fc==="unit"?"#9b8cff":null;}
                 else if(moving&&s.player&&s.idx!==moving.idx&&fitClass(moving.player,s.role)&&fitClass(s.player,moving.role)){ring="#c08cff";}
@@ -541,9 +578,8 @@ export default function App(){
           style={{ display: 'flex', alignItems: 'center', gap: 5, color: t.sub, fontSize: 12, textDecoration: 'none' }}
           onMouseEnter={e => (e.currentTarget.style.color = t.text)}
           onMouseLeave={e => (e.currentTarget.style.color = t.sub)}>
-          <svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            {/* Changed fill to currentColor */}
-            <path fill="currentColor" d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.603-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.741 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+          <svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{flexShrink:0,display:"block"}}>
+            <path fill={dark?"#f2f5ff":"#0d1330"} d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.603-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.741 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
           </svg>
           GitHub
         </a>
@@ -553,8 +589,8 @@ export default function App(){
           style={{ display: 'flex', alignItems: 'center', gap: 5, color: t.sub, fontSize: 12, textDecoration: 'none' }}
           onMouseEnter={e => (e.currentTarget.style.color = t.text)}
           onMouseLeave={e => (e.currentTarget.style.color = t.sub)}>
-          <svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path fill="currentColor" d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+          <svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{flexShrink:0,display:"block"}}>
+            <path fill="#EA4335" d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
           </svg>
           mattsaffar@gmail.com
         </a>
@@ -565,11 +601,9 @@ export default function App(){
           style={{ display: 'flex', alignItems: 'center', gap: 5, color: t.sub, fontSize: 12, textDecoration: 'none' }}
           onMouseEnter={e => (e.currentTarget.style.color = t.text)}
           onMouseLeave={e => (e.currentTarget.style.color = t.sub)}>
-          <svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            {/* The background bounding box inherits currentColor */}
-            <rect width="24" height="24" rx="4" fill="currentColor"/>
-            {/* The white icon punch-out paths inside look clean using the absolute background contrast color */}
-            <path fill="#232329" d="M7.75 9.5h-2.5v8h2.5v-8zm-1.25-4a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5zm9 4c-1.2 0-2 .6-2.3 1.2V9.5h-2.5v8h2.5v-4.2c0-1.1.6-1.8 1.6-1.8.9 0 1.4.6 1.4 1.8v4.2h2.5v-4.8c0-2.3-1.3-3.2-3.2-3.2z"/>
+          <svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{flexShrink:0,display:"block"}}>
+            <rect width="24" height="24" rx="4" fill="#0A66C2"/>
+            <path fill="#ffffff" d="M7.75 9.5h-2.5v8h2.5v-8zm-1.25-4a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5zm9 4c-1.2 0-2 .6-2.3 1.2V9.5h-2.5v8h2.5v-4.2c0-1.1.6-1.8 1.6-1.8.9 0 1.4.6 1.4 1.8v4.2h2.5v-4.8c0-2.3-1.3-3.2-3.2-3.2z"/>
           </svg>
           LinkedIn
         </a>
