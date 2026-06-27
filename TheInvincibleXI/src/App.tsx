@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { Sun, Moon, RotateCw, Shuffle, Trophy, Share2, RefreshCw, ArrowLeftRight, Play, Repeat, Clock, Sparkles, Search, Wand2, Eye, EyeOff } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Sun, Moon, Shuffle, Trophy, Share2, RefreshCw, ArrowLeftRight, Play, Repeat, Clock, Sparkles, Search, Wand2, Eye, EyeOff } from "lucide-react";
 
 
 /* ---------- types ---------- */
@@ -218,7 +218,7 @@ const cn=(n:string)=>n.replace(/\s*\([^)]*\)/g,"").trim();
 function poisson(l:number){const L=Math.exp(-l);let k=0,pr=1;do{k++;pr*=Math.random();}while(pr>L);return k-1;}
 const rosterStrength=(r:Roster)=>{const s=r.players.map(p=>p.ov).sort((a,b)=>b-a).slice(0,7);return s.reduce((a,b)=>a+b,0)/s.length;};
 function chemistry(placed:(Player|null)[]){let chem=0;const icons=placed.filter(p=>p&&p.ic).length;chem+=Math.min(6,icons*2);const g:Record<string,number>={};placed.forEach(p=>{if(p&&p._src){const k=p._src.club+p._src.era;g[k]=(g[k]||0)+1;}});let cl=0;Object.values(g).forEach(k=>{if(k>=2)cl+=(k-1);});chem+=Math.min(6,cl);return{chem,icons};}
-function simulate(slots:Slot[],formation:string):SimResult{const filled=slots.filter(s=>s.player);const bu:Record<Unit,number[]>={gk:[],def:[],mid:[],att:[]};filled.forEach(s=>bu[unitOf(s.role)].push(roleFit(s.player!,s.role)));const avg=(a:number[])=>a.length?a.reduce((x,y)=>x+y,0)/a.length:35;const mod=FORM_MOD[formation];const gk=avg(bu.gk),def=avg(bu.def)*mod.def,mid=avg(bu.mid)*mod.mid,att=avg(bu.att)*mod.att;const{chem,icons}=chemistry(filled.map(s=>s.player));const cm=1+chem/180;const attackWeights: Record<string, [number, number]> = {
+function simulate(slots:Slot[],formation:string):SimResult{const filled=slots.filter(s=>s.player);const bu:Record<Unit,number[]>={gk:[],def:[],mid:[],att:[]};filled.forEach(s=>bu[unitOf(s.role)].push(roleFit(s.player!,s.role)));const avg=(a:number[])=>a.length?a.reduce((x,y)=>x+y,0)/a.length:35;const mod=FORM_MOD[formation];const gk=avg(bu.gk),def=avg(bu.def)*mod.def,mid=avg(bu.mid)*mod.mid,att=avg(bu.att)*mod.att;const{chem,icons}=chemistry(filled.map(s=>s.player));const attackWeights: Record<string, [number, number]> = {
   '4-3-3':   [0.70, 0.30],
   '4-4-2':   [0.68, 0.32],  
   '4-2-3-1': [0.65, 0.35],  
