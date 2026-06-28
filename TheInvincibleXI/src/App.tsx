@@ -215,6 +215,7 @@ const ROSTERS:Roster[]=[
 {club:"SEV",era:"10s",note:"Kings of the Europa",players:[P("sergiorico","Sergio Rico",["GK"],[],82,"keeper"),P("rami","Adil Rami",["CB"],[],81,"wall"),P("kounde","Jules Koundé ('19)",["CB","RB"],[],83,"sweeper"),P("krychowiak","Grzegorz Krychowiak",["CDM"],[],83,"anchor"),P("rakitic","Ivan Rakitić",["CM"],["CAM"],84,"playmaker"),P("banega","Éver Banega ('19)",["CM"],["CAM"],84,"playmaker"),P("vitolo","Vitolo",["LW"],[],82,"winger"),P("gameiro","Kevin Gameiro",["ST"],[],82,"poacher"),P("bacca","Carlos Bacca",["ST"],[],83,"poacher")]},
 {club:"SEV",era:"20s",note:"Europa kings, again",players:[P("bono","Yassine Bounou",["GK"],[],84,"keeper"),P("diegocarlos","Diego Carlos",["CB"],[],83,"wall"),P("kounde","Jules Koundé ('21)",["CB","RB"],[],83,"sweeper"),P("fernando","Fernando Reges",["CDM"],[],82,"anchor"),P("rakitic","Ivan Rakitić ('21)",["CM"],["CAM"],82,"playmaker"),P("ocampos","Lucas Ocampos",["RW","ST"],[],81,"winger"),P("ennesyri","Youssef En-Nesyri",["ST"],[],82,"power")]},
 ];
+
 /* ---------- formations ---------- */
 const FORMATIONS:Record<string,Role[]>={
 "4-3-3 (Balance)":["GK","LB","CB","CB","RB","CM","CM","CM","LW","ST","RW"],
@@ -520,13 +521,15 @@ export default function App(){
   const oracle=useMemo(()=>{
     if(phase!=="results"||rounds.length<11)return null;
     // Best XI ACHIEVABLE from the actual rounds (one pick per spin), evaluated per formation.
+    const round38=(w:number,d:number,l:number):[number,number,number]=>{const raw=[w,d,l];const fl=raw.map(Math.floor);let rem=38-fl.reduce((a,b)=>a+b,0);const ord=raw.map((x,i)=>({i,fr:x-fl[i]})).sort((a,b)=>b.fr-a.fr);const out=[...fl];for(let k=0;k<rem&&k<3;k++)out[ord[k].i]++;return [out[0],out[1],out[2]];};
     const ranked=Object.keys(FORMATIONS).map(f=>{
       const a=achievableXI(rounds,f);
       if(!a||a.xi.some(s=>!s.player))return null;
       let pts=0,W=0,D=0,L=0;const N=14;
       for(let i=0;i<N;i++){const r=simulate(a.xi,f,diff);pts+=r.pts;W+=r.W;D+=r.D;L+=r.Lo;}
+      const[Wr,Dr,Lr]=round38(W/N,D/N,L/N);
       const pl=a.xi.map(s=>s.player as Player);
-      return {f,a,pts:pts/N,W:Math.round(W/N),D:Math.round(D/N),L:Math.round(L/N),avgOV:pl.reduce((x,p)=>x+p.ov,0)/pl.length};
+      return {f,a,pts:Wr*3+Dr,W:Wr,D:Dr,L:Lr,avgOV:pl.reduce((x,p)=>x+p.ov,0)/pl.length};
     }).filter(Boolean) as {f:string;a:NonNullable<ReturnType<typeof achievableXI>>;pts:number;W:number;D:number;L:number;avgOV:number}[];
     if(!ranked.length)return null;
     ranked.sort((x,y)=>y.pts-x.pts);
