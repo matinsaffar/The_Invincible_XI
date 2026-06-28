@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Sun, Moon, Shuffle, Trophy, Share2, RefreshCw, ArrowLeftRight, Play, Repeat, Clock, Sparkles, Search, Wand2, Eye, EyeOff, ChevronDown, Check, Volume2, VolumeX } from "lucide-react";
+import { Sun, Moon, Shuffle, Trophy, Share2, RefreshCw, ArrowLeftRight, Play, Repeat, Clock, Sparkles, Search, Wand2, Eye, EyeOff, ChevronDown, Check, Volume2, VolumeX, Mail } from "lucide-react";
 
 /* ---------- Switch-style sound engine (Web Audio, fully synthesized — no assets) ---------- */
 const sfx=(()=>{
@@ -34,6 +34,7 @@ const sfx=(()=>{
     reel(){noise(0.016,0.045,2600); tone(1500,0.014,"square",0.035);},                        // reel tick
     lock(){tone(700,0.05,"triangle",0.19); tone(1080,0.1,"triangle",0.16,0.05); noise(0.02,0.05,1800);}, // reel stop
     success(){[523.25,659.25,783.99,1046.5].forEach((f,i)=>tone(f,0.22,"triangle",0.15,i*0.08));},
+    jackpot(){[784,988,1175,1568,2093].forEach((f,i)=>tone(f,0.2,"triangle",0.14,i*0.05));noise(0.35,0.03,4200,0.02);tone(2637,0.25,"sine",0.06,0.25);},
     fanfare(){[523,659,784,1046,1318].forEach((f,i)=>tone(f,0.32,"triangle",0.16,i*0.1)); noise(0.5,0.025,3200,0.05);},
     thud(){tone(190,0.26,"sine",0.15,0,120);},
   };
@@ -238,10 +239,12 @@ const FORMATION_ROWS:Record<string,number[]>={
 const FORM_MOD:Record<string,{att:number;mid:number;def:number}>={"4-3-3 (Balance)":{att:1.08,mid:1.02,def:.98},"4-3-3 (Attack)":{att:1.14,mid:1,def:.9},"4-3-3 (Defence)":{att:.98,mid:1.04,def:1.08},"4-3-3 (Holding)":{att:1.04,mid:1.08,def:1.02},"4-4-2":{att:1.06,mid:1.02,def:1},"4-2-3-1":{att:1.04,mid:1.08,def:1.05},"3-5-2":{att:1.05,mid:1.12,def:.97},"5-4-1":{att:.9,mid:1.02,def:1.14}};
 /* difficulty: dominance ceiling per level (tuned by Monte-Carlo so an elite squad hits ~25/10/2% 38-0,
    while a weak squad stays ~0% because the boost is gated by squad strength) */
-const DIFF_DOM:Record<string,number>={easy:0.95,medium:1.1,hard:1.35};
+const DIFF_DOM:Record<string,number>={easy:0.85,medium:0.73,hard:0.58};
 /* spin shaping per difficulty: pfScale=rubber-band strength, strBias=skew toward strong(+)/weak(-),
    iconMult=affinity for icon-bearing rosters, floor=uniform blend so no difficulty is fully deterministic */
-const DIFF_SPIN:Record<string,{pfScale:number;strBias:number;iconMult:number;floor:number}>={easy:{pfScale:0,strBias:3.2,iconMult:2.4,floor:0},medium:{pfScale:1,strBias:0.5,iconMult:1.2,floor:0.05},hard:{pfScale:1.6,strBias:-1.3,iconMult:1,floor:0.12}};
+const DIFF_SPIN:Record<string,{pfScale:number;strBias:number;iconMult:number;floor:number}>={easy:{pfScale:0,strBias:3.2,iconMult:2.4,floor:0},medium:{pfScale:0.55,strBias:1.7,iconMult:1.9,floor:0.03},hard:{pfScale:1.1,strBias:1,iconMult:1.6,floor:0.05}};
+/* hope mechanic: chance a single spin rolls "lucky" and draws from the elite (easy) tier — a jackpot moment on medium/hard */
+const DIFF_LUCKY:Record<string,number>={easy:0,medium:0.07,hard:0.07};
 const DIFFS:{id:"easy"|"medium"|"hard";label:string;emoji:string;desc:string}[]=[
 {id:"easy",label:"Easy",emoji:"🍼",desc:"Premium spins, icons everywhere, no rubber-band · build well and 38-0 is a real shot (~25%)."},
 {id:"medium",label:"Medium",emoji:"⚖️",desc:"Balanced spins · a perfect 38-0 season is a genuine challenge (~10% at your best)."},
@@ -302,7 +305,23 @@ function simulate(slots:Slot[],formation:string,diff:string="medium"):SimResult{
   const [dw, gkw, mdw] = defenseWeights[formation] ?? [0.60, 0.25, 0.15];
   let defense = def * dw + gk * gkw + mid * mdw;const _ovs=filled.map(s=>s.player!.ov);const _avgOV=_ovs.length?_ovs.reduce((a,b)=>a+b,0)/_ovs.length:70;const _quality=Math.max(0,Math.min(1,(_avgOV-83)/10));const _boost=1+(DIFF_DOM[diff]??DIFF_DOM.medium)*_quality;attack*=_boost;defense*=_boost;let W=0,D=0,Lo=0,GF=0,GA=0;const log:{gf:number;ga:number;res:string}[]=[];for(let i=0;i<38;i++){const roll = Math.random();
   const oppBase = roll < 0.15 ? 60 + Math.random() * 10 : roll < 0.70 ? 70 + Math.random() * 12 : roll < 0.92 ? 82 + Math.random() * 8 : 90 + Math.random() * 6; const oppAtk = Math.min(99, oppBase + (Math.random() * 10 - 5)); const oppDef = Math.min(99, oppBase + (Math.random() * 10 - 5));const lf = 1.5  * Math.pow(attack / oppDef, 1.7);
-  const la = 1.32 * Math.pow(oppAtk / defense, 2.11) - Math.min(0.12, icons * 0.02);const gf=Math.min(7,poisson(lf)),ga=Math.min(7,poisson(la));GF+=gf;GA+=ga;let res;if(gf>ga){W++;res="W";}else if(gf===ga){D++;res="D";}else{Lo++;res="L";}log.push({gf,ga,res});}return{W,D,Lo,GF,GA,pts:W*3+D,log,chem,icons,units:{gk,def,mid,att}};}
+  const la = 1.32 * Math.pow(oppAtk / defense, 2.11) - Math.min(0.12, icons * 0.02);const gf=Math.min(7,poisson(lf)),ga=Math.min(7,poisson(la));GF+=gf;GA+=ga;let res;if(gf>ga){W++;res="W";}else if(gf===ga){D++;res="D";}else{Lo++;res="L";}log.push({gf,ga,res});}
+  /* Hope mechanic (medium/hard only): a quality squad that just missed tends to miss NARROWLY, so you feel
+     "one slip from history". Only seasons that already fell short are touched -> the true 38-0 rate is unchanged,
+     and at least one non-win always remains so a reshape can never fabricate a perfect record. */
+  if(diff!=="easy"&&W<38){
+    const nonWin=D+Lo;
+    if(_quality>0.35&&nonWin>=2&&nonWin<=7&&Math.random()<(diff==="hard"?0.55:0.48)){
+      const pull=Math.min(nonWin-1,Math.round(nonWin*(0.35+0.25*_quality)));
+      if(pull>0){
+        const idx:number[]=[];for(let i=0;i<log.length;i++)if(log[i].res!=="W")idx.push(i);
+        for(let k=idx.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[idx[k],idx[j]]=[idx[j],idx[k]];}
+        let done=0;
+        for(const i of idx){if(done>=pull)break;const m=log[i];if(m.res==="D")D--;else Lo--;GA-=m.ga;const ng=Math.min(m.ga,m.gf>0?m.gf-1:0);const nf=Math.max(m.gf,ng+1);GF+=nf-m.gf;GA+=ng;m.gf=nf;m.ga=ng;m.res="W";W++;done++;}
+      }
+    }
+  }
+  return{W,D,Lo,GF,GA,pts:W*3+D,log,chem,icons,units:{gk,def,mid,att}};}
 function bestXI(pool:Player[],formation:string):Slot[]{const uniq:Record<string,Player>={};pool.forEach(p=>{if(!uniq[p.id]||p.ov>uniq[p.id].ov)uniq[p.id]=p;});const players=Object.values(uniq);const roles:Slot[]=FORMATIONS[formation].map((r,i)=>({idx:i,role:r,player:null}));const order=[...roles].sort((a,b)=>(({gk:0,att:1,def:2,mid:3} as Record<Unit,number>)[unitOf(a.role)]-({gk:0,att:1,def:2,mid:3} as Record<Unit,number>)[unitOf(b.role)]));const used=new Set<string>();order.forEach(slot=>{let best:Player|null=null,bf=-1;players.forEach(p=>{if(used.has(p.id))return;const f=roleFit(p,slot.role);if(f>bf){bf=f;best=p;}});if(best){used.add((best as Player).id);roles[slot.idx].player=best;}});return roles;}
 
 function Badge({code,size=44}:{code:string;size?:number}){const cl=CLUBS[code];const[a,b]=cl.c;return(<svg width={size} height={size*1.18} viewBox="0 0 44 52" style={{flexShrink:0}}><defs><linearGradient id={"g"+code} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={a}/><stop offset="1" stopColor={b}/></linearGradient></defs><path d="M2 4 L42 4 L42 30 Q42 44 22 50 Q2 44 2 30 Z" fill={"url(#g"+code+")"} stroke="rgba(255,255,255,.55)" strokeWidth="1.5"/><text x="22" y="27" textAnchor="middle" fontSize="11" fontWeight="800" fill="#fff" style={{paintOrder:"stroke",stroke:"rgba(0,0,0,.4)",strokeWidth:2}}>{code}</text></svg>);}
@@ -326,6 +345,11 @@ export default function App(){
   const[diff,setDiff]=useState<"easy"|"medium"|"hard">("easy");
   const[showStats,setShowStats]=useState(true);
   const[soundOn,setSoundOn]=useState(true);
+  const[jackpot,setJackpot]=useState(false);
+  const[showIntro,setShowIntro]=useState(true);
+  const[introFade,setIntroFade]=useState(false);
+  useEffect(()=>{const t1=setTimeout(()=>setIntroFade(true),3000);const t2=setTimeout(()=>setShowIntro(false),3550);return()=>{clearTimeout(t1);clearTimeout(t2);};},[]);
+  const skipIntro=()=>{setIntroFade(true);setTimeout(()=>setShowIntro(false),500);};
   useEffect(()=>{sfx.setOn(soundOn);},[soundOn]);
   useEffect(()=>{
     const h=(e:MouseEvent)=>{
@@ -378,8 +402,8 @@ export default function App(){
     return rubber*skew*(hasIcon?cfg.iconMult:1);
   };
   const pickWeighted=(items:string[],raw:number[],floor:number)=>{const tot=raw.reduce((a,b)=>a+b,0)||1;const u=1/items.length;const w=raw.map(x=>(1-floor)*(x/tot)+floor*u);const wt=w.reduce((a,b)=>a+b,0);let r=Math.random()*wt;for(let i=0;i<items.length;i++){r-=w[i];if(r<=0)return items[i];}return items[0];};
-  function wClub(){const cfg=DIFF_SPIN[diff]||DIFF_SPIN.medium;const pf=Math.max(0,(squadPower-84)/10);const cs=Object.keys(CLUB_ERAS);const raw=cs.map(c=>spinWeight(clubBest(c),clubHasIcon(c),pf,cfg));return pickWeighted(cs,raw,cfg.floor);}
-  function wEra(club:string,ex?:string){const cfg=DIFF_SPIN[diff]||DIFF_SPIN.medium;const pf=Math.max(0,(squadPower-84)/10);const es=CLUB_ERAS[club].filter(e=>e!==ex);const pool=es.length?es:CLUB_ERAS[club];const raw=pool.map(e=>spinWeight(rosterStrength(rosterOf(club,e)!),eraHasIcon(club,e),pf,cfg));return pickWeighted(pool,raw,cfg.floor);}
+  function wClub(lucky=false){const cfg=lucky?DIFF_SPIN.easy:(DIFF_SPIN[diff]||DIFF_SPIN.medium);const pf=Math.max(0,(squadPower-84)/10);const cs=Object.keys(CLUB_ERAS);const raw=cs.map(c=>spinWeight(clubBest(c),clubHasIcon(c),pf,cfg));return pickWeighted(cs,raw,cfg.floor);}
+  function wEra(club:string,ex?:string,lucky=false){const cfg=lucky?DIFF_SPIN.easy:(DIFF_SPIN[diff]||DIFF_SPIN.medium);const pf=Math.max(0,(squadPower-84)/10);const es=CLUB_ERAS[club].filter(e=>e!==ex);const pool=es.length?es:CLUB_ERAS[club];const raw=pool.map(e=>spinWeight(rosterStrength(rosterOf(club,e)!),eraHasIcon(club,e),pf,cfg));return pickWeighted(pool,raw,cfg.floor);}
 
   function start(){setPhase("play");setSlots(FORMATIONS[formation].map((r,i)=>({idx:i,role:r,player:null})));setSpin(null);setSpinning(false);setReelClub(null);setReelEra(null);setUsedClub(false);setUsedEra(false);setSel(null);setMoving(null);setResult(null);setOffered([]);setQuery("");}
 
@@ -415,8 +439,9 @@ export default function App(){
   function spin1(){ // single spin: club + era together
     if(spinning||allFull)return;
     setSel(null);setMoving(null);setSpin(null);setSpinning(true);
+    const lucky=Math.random()<(DIFF_LUCKY[diff]||0);
     const ck=Object.keys(CLUBS);let n=0;const total=16+Math.floor(Math.random()*6);
-    const iv=setInterval(()=>{const rc=ck[Math.floor(Math.random()*ck.length)];setReelClub(rc);setReelEra(CLUB_ERAS[rc][Math.floor(Math.random()*CLUB_ERAS[rc].length)]);sfx.reel();n++;if(n>=total){clearInterval(iv);const c=wClub();const e=wEra(c);setReelClub(c);setReelEra(e);sfx.lock();setTimeout(()=>revealRoster(c,e),120);}},65);
+    const iv=setInterval(()=>{const rc=ck[Math.floor(Math.random()*ck.length)];setReelClub(rc);setReelEra(CLUB_ERAS[rc][Math.floor(Math.random()*CLUB_ERAS[rc].length)]);sfx.reel();n++;if(n>=total){clearInterval(iv);const c=wClub(lucky);const e=wEra(c,undefined,lucky);setReelClub(c);setReelEra(e);if(lucky){sfx.jackpot();setJackpot(true);setTimeout(()=>setJackpot(false),1600);}else sfx.lock();setTimeout(()=>revealRoster(c,e),120);}},65);
   }
   function changeClub(){
     if(usedClub||!spin||spinning)return;
@@ -454,7 +479,17 @@ export default function App(){
   function runSeason(){const r=simulate(slots,formation,diff);setResult(r);setPhase("results");setTimeout(()=>{if(r.W===38)sfx.fanfare();else if(r.Lo===0||r.pts>=90)sfx.success();else sfx.thud();},140);}
   const oracle=useMemo(()=>{if(phase!=="results"||offered.length<11)return null;const xi=bestXI(offered,formation);if(xi.some(s=>!s.player))return null;return simulate(xi,formation,diff);},[phase,offered,formation,diff]);
 
-  function verdict(r:SimResult){if(r.W===38)return{title:"THE IMPOSSIBLE SEASON",sub:"38-0. The greatest team ever assembled.",tier:"legend"};if(r.Lo===0&&r.D<=4)return{title:"INVINCIBLES",sub:"Unbeaten — but the perfect record slipped away.",tier:"gold"};if(r.pts>=90)return{title:"CHAMPIONS",sub:"A dominant, title-winning campaign.",tier:"gold"};if(r.pts>=75)return{title:"TITLE CHALLENGERS",sub:"So close. Rebalance and run it back.",tier:"silver"};if(r.pts>=55)return{title:"EUROPEAN NIGHTS",sub:"Solid — but not invincible.",tier:"silver"};return{title:"REBUILDING",sub:"The squad needs balance across the pitch.",tier:"bronze"};}
+  function verdict(r:SimResult){
+    if(r.W===38)return{title:"THE IMPOSSIBLE SEASON",sub:"38-0-0. The greatest team ever assembled.",tier:"legend"};
+    if(r.W>=36)return{title:"AGONISINGLY CLOSE",sub:r.W+"-"+r.D+"-"+r.Lo+" — history slipped by a single afternoon. This is the run. Go again.",tier:"gold"};
+    if(r.Lo===0)return{title:"INVINCIBLES",sub:"Unbeaten all season — the perfect record is within touching distance.",tier:"gold"};
+    if(r.W>=33)return{title:"ON THE BRINK",sub:r.W+" wins. The 38-0 is right there — one more run and it's yours.",tier:"silver"};
+    if(r.pts>=90)return{title:"CHAMPIONS",sub:"A dominant, title-winning campaign. Now chase perfection.",tier:"gold"};
+    if(r.pts>=75)return{title:"TITLE CHALLENGERS",sub:"So close. Rebalance and run it back.",tier:"silver"};
+    if(r.pts>=55)return{title:"EUROPEAN NIGHTS",sub:"Solid — keep spinning for that elite XI.",tier:"silver"};
+    return{title:"REBUILDING",sub:"Spin for stronger clubs and balance the pitch — your run is coming.",tier:"bronze"};
+  }
+  function sendFeedback(){const m=result?"My run: "+result.W+"-"+result.D+"-"+result.Lo+" · "+result.pts+" pts · "+formation+" · "+(DIFFS.find(d=>d.id===diff)?.label||"")+" mode\n\n":"";const subject=encodeURIComponent("38-0 — Feedback");const body=encodeURIComponent(m+"My feedback:\n");window.location.href="mailto:mattsaffar@gmail.com?subject="+subject+"&body="+body;}
   function share(){if(!result)return;const v=verdict(result);const xi=slots.map(s=>s.role+": "+(s.player?cn(s.player.n):"—")).join("\n");const txt="⚽ 38-0 — "+v.title+"\n"+result.W+"-"+result.D+"-"+result.Lo+" · "+result.pts+" pts · GF "+result.GF+"/GA "+result.GA+" · "+formation+"\n\n"+xi+"\n\nChase the impossible 38-0.";if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),1800);});}
   // Compute which roles still have empty slots
   const openRoles = useMemo(() =>
@@ -486,6 +521,24 @@ export default function App(){
 
   return(
   <div style={{minHeight:"100vh",width:"100%",color:t.text,fontFamily:"ui-sans-serif, system-ui, sans-serif",position:"relative",overflow:"hidden"}}>
+    {showIntro&&(
+      <div onClick={skipIntro} style={{position:"fixed",inset:0,zIndex:120,cursor:"pointer",background:"radial-gradient(circle at 50% 35%, #1b2247, #0a0e1f 70%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14,opacity:introFade?0:1,transition:"opacity .55s ease"}}>
+        <div style={{animation:"introUp .7s cubic-bezier(.2,.8,.2,1) both"}}><svg width="58" height="64" viewBox="0 0 46 52" aria-hidden="true"><defs><linearGradient id="crestG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#9b8cff"/><stop offset="1" stopColor="#5de0c4"/></linearGradient></defs><path d="M5 6 L41 6 L41 30 Q41 44 23 49 Q5 44 5 30 Z" fill="url(#crestG)" fillOpacity="0.16" stroke="url(#crestG)" strokeWidth="1.6"/><circle cx="23" cy="24" r="11" fill="none" stroke="url(#crestG)" strokeWidth="1.5"/><path d="M23 13 L26.5 20.5 L18.5 20.5 Z M16 23 L19 31 L13.5 26 Z M30 23 L27 31 L32.5 26 Z" fill="url(#crestG)"/></svg></div>
+        <div style={{fontSize:50,fontWeight:900,letterSpacing:-1,background:"linear-gradient(135deg,#b4a8ff,#5de0c4)",WebkitBackgroundClip:"text",backgroundClip:"text",WebkitTextFillColor:"transparent",animation:"introUp .7s .08s both"}}>38-0</div>
+        <div style={{fontSize:14,fontWeight:700,color:"rgba(242,245,255,.7)",letterSpacing:3,textTransform:"uppercase",animation:"introUp .7s .16s both"}}>Build the Invincibles</div>
+        <div style={{marginTop:22,display:"flex",alignItems:"center",gap:7,fontSize:13.5,fontWeight:600,color:"rgba(242,245,255,.85)",animation:"introUp .7s .3s both"}}>Built with <span style={{display:"inline-flex",alignItems:"center",gap:4,fontWeight:800}}><svg width="13" height="15" viewBox="0 0 13 15" aria-hidden="true"><defs><linearGradient id="vit" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#41d1ff"/><stop offset="1" stopColor="#bd34fe"/></linearGradient><linearGradient id="vit2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#ffea83"/><stop offset="1" stopColor="#ffba27"/></linearGradient></defs><path d="M12.7 2.1 6.8 13.9c-.13.26-.5.26-.63 0L.2 2.1c-.14-.28.1-.6.41-.55l5.9 1.05c.04 0 .09 0 .13 0L12.3 1.55c.31-.06.55.27.41.55z" fill="url(#vit)"/><path d="M9.3 1.0 5.0 1.85c-.07.01-.12.07-.13.14l-.27 4.55c-.01.1.08.18.18.16l1.2-.28c.11-.03.21.08.18.19l-.36 1.74c-.03.12.08.22.19.18l.74-.22c.11-.03.22.07.19.19l-.57 2.74c-.04.18.2.28.3.12L7.0 10.7l2.74-5.47c.06-.12-.04-.25-.17-.23l-1.23.24c-.12.02-.22-.09-.18-.2l.8-2.78c.04-.12-.06-.23-.18-.2z" fill="url(#vit2)"/></svg>Vite</span></div>
+        <div style={{fontSize:13,fontWeight:700,color:"#b4a8ff",animation:"introUp .7s .42s both"}}>Created by Matin Saffar</div>
+        <div style={{position:"absolute",bottom:30,fontSize:11,color:"rgba(242,245,255,.4)",animation:"introUp .7s .9s both"}}>tap to skip</div>
+      </div>
+    )}
+    {jackpot&&(
+      <div style={{position:"fixed",inset:0,zIndex:90,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+        <div style={{padding:"16px 30px",borderRadius:20,background:"linear-gradient(135deg,#ffd86b,#ff8c6b,#ff5d8f)",boxShadow:"0 14px 50px rgba(255,160,80,.6)",textAlign:"center",animation:"jackpotPop .5s cubic-bezier(.2,1.4,.4,1) both"}}>
+          <div style={{fontSize:26,fontWeight:900,color:"#1a1030",letterSpacing:1}}>⭐ JACKPOT ⭐</div>
+          <div style={{fontSize:12.5,fontWeight:800,color:"#3a2010",marginTop:2}}>Lucky spin — elite pull!</div>
+        </div>
+      </div>
+    )}
     <div style={{position:"fixed",inset:0,zIndex:0,background:"radial-gradient(circle at 15% 20%, "+t.bg2+", transparent 55%), radial-gradient(circle at 85% 15%, "+t.bg3+", transparent 50%), radial-gradient(circle at 50% 90%, "+t.bg2+", transparent 60%), "+t.bg1}}/>
     <div style={{position:"fixed",top:"-10%",left:"-5%",width:480,height:480,borderRadius:"50%",background:t.bg3,filter:"blur(120px)",opacity:dark?.5:.6,zIndex:0}}/>
     <div style={{position:"fixed",bottom:"-15%",right:"-8%",width:520,height:520,borderRadius:"50%",background:t.bg2,filter:"blur(130px)",opacity:dark?.45:.55,zIndex:0}}/>
@@ -629,9 +682,10 @@ export default function App(){
           <button onClick={start} style={{flex:1,...glass,borderRadius:15,padding:14,color:t.text,fontWeight:800,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><RefreshCw size={17}/> New game</button>
           <button onClick={share} data-sfx="select" style={{flex:1,background:"linear-gradient(135deg,#9b8cff,#5de0c4)",border:"none",borderRadius:15,padding:14,color:"#06121f",fontWeight:900,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><Share2 size={17}/> {copied?"Copied!":"Share"}</button>
         </div>
+        <button onClick={sendFeedback} style={{width:"100%",...glass,borderRadius:15,padding:12,color:t.sub,fontWeight:700,fontSize:13.5,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><Mail size={15}/> Send feedback</button>
       </div>)}
     </div>
-    <style>{"@keyframes spin360{to{transform:rotate(360deg)}}.spin{animation:spin360 .7s linear infinite}::-webkit-scrollbar{width:7px}::-webkit-scrollbar-thumb{background:"+t.glassB+";border-radius:10px}select option{color:#000}button{font-family:inherit;transition:transform .1s,filter .15s}button:active:not(:disabled){transform:scale(.97)}input::placeholder{color:"+t.sub+"}"}</style>
+    <style>{"@keyframes spin360{to{transform:rotate(360deg)}}.spin{animation:spin360 .7s linear infinite}@keyframes introUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}@keyframes jackpotPop{0%{opacity:0;transform:scale(.5)}60%{opacity:1;transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}::-webkit-scrollbar{width:7px}::-webkit-scrollbar-thumb{background:"+t.glassB+";border-radius:10px}select option{color:#000}button{font-family:inherit;transition:transform .1s,filter .15s}button:active:not(:disabled){transform:scale(.97)}input::placeholder{color:"+t.sub+"}"}</style>
     <footer style={{
       textAlign: 'center',
       padding: '18px 16px 20px',
