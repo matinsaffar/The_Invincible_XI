@@ -322,7 +322,6 @@ function simulate(slots:Slot[],formation:string,diff:string="medium"):SimResult{
   }
   return{W,D,Lo,GF,GA,pts:W*3+D,log,chem,icons,units:{gk:gk,def:defR,mid:midR,att:attR}};}
 // Hungarian algorithm: max-weight perfect assignment on a square weight matrix. Returns col index for each row.
-function bestXI(pool:Player[],formation:string):Slot[]{const uniq:Record<string,Player>={};pool.forEach(p=>{if(!uniq[p.id]||p.ov>uniq[p.id].ov)uniq[p.id]=p;});const players=Object.values(uniq);const roles:Slot[]=FORMATIONS[formation].map((r,i)=>({idx:i,role:r,player:null}));const order=[...roles].sort((a,b)=>(({gk:0,att:1,def:2,mid:3} as Record<Unit,number>)[unitOf(a.role)]-({gk:0,att:1,def:2,mid:3} as Record<Unit,number>)[unitOf(b.role)]));const used=new Set<string>();order.forEach(slot=>{let best:Player|null=null,bf=-1;players.forEach(p=>{if(used.has(p.id))return;const f=roleFit(p,slot.role);if(f>bf){bf=f;best=p;}});if(best){used.add((best as Player).id);roles[slot.idx].player=best;}});return roles;}
 
 // Max-weight assignment (Hungarian, O(n^3)) — minimises cost, so feed cost = BIG - weight.
 function hungarian(cost:number[][]):number[]{const n=cost.length;if(n===0)return[];const INF=1e9;const u=new Array(n+1).fill(0),v=new Array(n+1).fill(0),p=new Array(n+1).fill(0),way=new Array(n+1).fill(0);
@@ -338,7 +337,7 @@ function hungarian(cost:number[][]):number[]{const n=cost.length;if(n===0)return
 // Returns the assignment per slot and a map of which round optimally fills which slot.
 interface Round{club:string;era:string;slot:string;chosen:Player;roster:Player[];via:"spin"|"club"|"era";}
 function achievableXI(rounds:Round[],formation:string){
-  const roles=FORMATIONS[formation];const S=roles.length;const R=rounds.length;
+  const roles=FORMATIONS[formation];if(!roles)return null;const S=roles.length;const R=rounds.length;
   if(R===0)return null;
   const N=Math.max(R,S);const BIG=1e6;
   // weight[r][s] = best roleFit of any eligible player in round r for slot s (+ remember the player)
@@ -418,7 +417,6 @@ export default function App(){
   const[sel,setSel]=useState<Player|null>(null);
   const[moving,setMoving]=useState<Slot|null>(null);
   const[query,setQuery]=useState("");
-  const[offered,setOffered]=useState<Player[]>([]);
   const[rounds,setRounds]=useState<{club:string;era:string;slot:string;chosen:Player;roster:Player[];via:"spin"|"club"|"era"}[]>([]);
   const spinVia=useRef<"spin"|"club"|"era">("spin");
   const[result,setResult]=useState<SimResult|null>(null);
@@ -450,7 +448,7 @@ export default function App(){
   function wClub(lucky=false){const cfg=lucky?DIFF_SPIN.easy:(DIFF_SPIN[diff]||DIFF_SPIN.medium);const pf=Math.max(0,(squadPower-84)/10);const cs=Object.keys(CLUB_ERAS);const raw=cs.map(c=>spinWeight(clubBest(c),clubHasIcon(c),pf,cfg));return pickWeighted(cs,raw,cfg.floor);}
   function wEra(club:string,ex?:string,lucky=false){const cfg=lucky?DIFF_SPIN.easy:(DIFF_SPIN[diff]||DIFF_SPIN.medium);const pf=Math.max(0,(squadPower-84)/10);const es=CLUB_ERAS[club].filter(e=>e!==ex);const pool=es.length?es:CLUB_ERAS[club];const raw=pool.map(e=>spinWeight(rosterStrength(rosterOf(club,e)!),eraHasIcon(club,e),pf,cfg));return pickWeighted(pool,raw,cfg.floor);}
 
-  function start(){setPhase("play");setSlots(FORMATIONS[formation].map((r,i)=>({idx:i,role:r,player:null})));setSpin(null);setSpinning(false);setReelClub(null);setReelEra(null);setUsedClub(false);setUsedEra(false);setSel(null);setMoving(null);setResult(null);setOffered([]);setRounds([]);spinVia.current="spin";setQuery("");}
+  function start(){setPhase("play");setSlots(FORMATIONS[formation].map((r,i)=>({idx:i,role:r,player:null})));setSpin(null);setSpinning(false);setReelClub(null);setReelEra(null);setUsedClub(false);setUsedEra(false);setSel(null);setMoving(null);setResult(null);setRounds([]);spinVia.current="spin";setQuery("");}
 
   function revealRoster(club: string, era: string, attempt = 0) {
     const r = rosterOf(club, era);
@@ -475,11 +473,6 @@ export default function App(){
     
     setSpin({ club, era });
     setSpinning(false);
-    setOffered(o => {
-      const seen = new Set(o.map(p => `${p.id}${p.ov}`));
-      const add = r.players.filter(p => !seen.has(`${p.id}${p.ov}`) && p.ov);
-      return [...o, ...add.map(p => ({ ...p, src: { club, era } }))];
-    });
   }
   function spin1(){ // single spin: club + era together
     if(spinning||allFull)return;
