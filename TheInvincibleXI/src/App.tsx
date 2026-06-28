@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Sun, Moon, Shuffle, Trophy, Share2, RefreshCw, ArrowLeftRight, Play, Repeat, Clock, Sparkles, Search, Wand2, Eye, EyeOff, ChevronDown, Check, Volume2, VolumeX, Mail } from "lucide-react";
 
 /* ---------- Switch-style sound engine (Web Audio, fully synthesized — no assets) ---------- */
@@ -177,7 +177,7 @@ const ROSTERS:Roster[]=[
 /* JUVENTUS */
 {club:"JUV",era:"90s",note:"Del Piero & Zidane",players:[P("peruzzi","Angelo Peruzzi ('97)",["GK"],[],83,"keeper"),P("montero","Paolo Montero",["CB"],[],83,"wall"),P("conte","Antonio Conte",["CM"],["CDM"],81,"engine"),P("davids","Edgar Davids",["CM","CDM"],[],84,"box2box"),P("zidane","Zinédine Zidane ('98)",["CAM","CM"],[],89,"magician"),P("delpiero","Alessandro Del Piero",["CF","ST"],[],86,"creator"),P("vialli","Gianluca Vialli ('95)",["ST"],[],83,"poacher")]},
 {club:"JUV",era:"00s",note:"Buffon & Nedvěd",players:[P("buffon","Gianluigi Buffon",["GK"],[],89,"keeper"),P("lthuram","Lilian Thuram",["CB","RB"],[],85,"wall"),P("cannavaro","Fabio Cannavaro ('06)",["CB"],[],86,"wall"),P("nedved","Pavel Nedvěd ('03)",["CAM","CM"],[],88,"box2box"),P("camoranesi","Mauro Camoranesi",["RM","RW"],[],82,"winger"),P("tiago","Tiago",["CM"],["CDM"],81,"box2box"),P("delpiero","Del Piero ('06)",["CF","ST"],[],87,"creator"),P("trezeguet","David Trezeguet",["ST"],[],85,"poacher"),P("amauri","Amauri",["ST"],[],82,"power"),P("iaquinta","Vincenzo Iaquinta",["ST"],["RW"],81,"poacher")]},
-{club:"JUV",era:"10s",note:"Nine in a row",players:[P("buffon","Gianluigi Buffon ('17)",["GK"],[],88,"keeper"),P("chiellini","Giorgio Chiellini",["CB"],[],89,"wall"),P("bonucci","Leonardo Bonucci",["CB"],[],86,"ballplayer"),P("barzagli","Andrea Barzagli ('15)",["CB"],[],84,"wall"),P("pirlo","Andrea Pirlo ('12)",["CM","CDM"],[],88,"playmaker"),P("vidal","Arturo Vidal",["CM"],["CDM"],85,"box2box"),P("marchisio","Claudio Marchisio",["CM"],["CDM"],83,"box2box"),P("pogba","Paul Pogba ('15)",["CM","CAM"],[],85,"box2box"),P("krasic","Miloš Krasić",["RW"],[],81,"winger"),P("dybala","Paulo Dybala ('18)",["CAM","ST"],[],86,"creator"),P("tevez","Carlos Tévez ('14)",["ST"],[],85,"power"),P("vucinic","Mirko Vučinić",["ST"],[],82,"poacher"),P("matri","Alessandro Matri",["ST"],[],80,"poacher"),P("quagliarella","Fabio Quagliarella ('12)",["ST"],[],82,"creator"),P("anelka","Nicolas Anelka ('13)",["ST"],[],81,"complete"),P("fllorente","Fernando Llorente",["ST"],[],83,"poacher"),P("mandzukic","Mario Mandžukić ('16)",["ST"],["LW"],83,"power"),P("higuain","Gonzalo Higuaín ('17)",["ST"],[],85,"poacher"),P("cr7","Cristiano Ronaldo ('19)",["LW","ST"],[],92,"complete")]},
+{club:"JUV",era:"10s",note:"Nine in a row",players:[P("buffon","Gianluigi Buffon ('17)",["GK"],[],88,"keeper"),P("chiellini","Giorgio Chiellini",["CB"],[],87,"wall"),P("bonucci","Leonardo Bonucci",["CB"],[],86,"ballplayer"),P("barzagli","Andrea Barzagli ('15)",["CB"],[],84,"wall"),P("pirlo","Andrea Pirlo ('12)",["CM","CDM"],[],88,"playmaker"),P("vidal","Arturo Vidal",["CM"],["CDM"],85,"box2box"),P("marchisio","Claudio Marchisio",["CM"],["CDM"],83,"box2box"),P("pogba","Paul Pogba ('15)",["CM","CAM"],[],85,"box2box"),P("krasic","Miloš Krasić",["RW"],[],81,"winger"),P("dybala","Paulo Dybala ('18)",["CAM","ST"],[],86,"creator"),P("tevez","Carlos Tévez ('14)",["ST"],[],85,"power"),P("vucinic","Mirko Vučinić",["ST"],[],82,"poacher"),P("matri","Alessandro Matri",["ST"],[],80,"poacher"),P("quagliarella","Fabio Quagliarella ('12)",["ST"],[],82,"creator"),P("anelka","Nicolas Anelka ('13)",["ST"],[],81,"complete"),P("fllorente","Fernando Llorente",["ST"],[],83,"poacher"),P("mandzukic","Mario Mandžukić ('16)",["ST"],["LW"],83,"power"),P("higuain","Gonzalo Higuaín ('17)",["ST"],[],85,"poacher"),P("cr7","Cristiano Ronaldo ('19)",["LW","ST"],[],92,"complete")]},
 {club:"JUV",era:"20s",note:"Allegri's grind",players:[P("szczesny","Wojciech Szczęsny",["GK"],[],84,"keeper"),P("bremer","Gleison Bremer",["CB"],[],83,"wall"),P("kalulu","Pierre Kalulu",["CB","RB"],[],81,"sweeper"),P("locatelli","Manuel Locatelli",["CM"],["CDM"],81,"playmaker"),P("mckennie","Weston McKennie",["CM"],["RM"],80,"box2box"),P("kthuram","Khéphren Thuram",["CM"],["CDM"],82,"box2box"),P("chiesa","Federico Chiesa",["RW"],["LW"],83,"winger"),P("vlahovic","Dušan Vlahović",["ST"],[],84,"power")]},
 /* ATALANTA */
 {club:"ATA",era:"90s",note:"Lower-mid years",players:[P("ferron","Massimo Ferron",["GK"],[],76,"keeper"),P("morfeo","Domenico Morfeo",["CAM"],["LW"],81,"magician"),P("caniggia","Claudio Caniggia",["ST"],["RW"],81,"pace"),P("lentini","Gianluigi Lentini",["RW"],[],78,"winger")]},
@@ -215,8 +215,6 @@ const ROSTERS:Roster[]=[
 {club:"SEV",era:"10s",note:"Kings of the Europa",players:[P("sergiorico","Sergio Rico",["GK"],[],82,"keeper"),P("rami","Adil Rami",["CB"],[],81,"wall"),P("kounde","Jules Koundé ('19)",["CB","RB"],[],83,"sweeper"),P("krychowiak","Grzegorz Krychowiak",["CDM"],[],83,"anchor"),P("rakitic","Ivan Rakitić",["CM"],["CAM"],84,"playmaker"),P("banega","Éver Banega ('19)",["CM"],["CAM"],84,"playmaker"),P("vitolo","Vitolo",["LW"],[],82,"winger"),P("gameiro","Kevin Gameiro",["ST"],[],82,"poacher"),P("bacca","Carlos Bacca",["ST"],[],83,"poacher")]},
 {club:"SEV",era:"20s",note:"Europa kings, again",players:[P("bono","Yassine Bounou",["GK"],[],84,"keeper"),P("diegocarlos","Diego Carlos",["CB"],[],83,"wall"),P("kounde","Jules Koundé ('21)",["CB","RB"],[],83,"sweeper"),P("fernando","Fernando Reges",["CDM"],[],82,"anchor"),P("rakitic","Ivan Rakitić ('21)",["CM"],["CAM"],82,"playmaker"),P("ocampos","Lucas Ocampos",["RW","ST"],[],81,"winger"),P("ennesyri","Youssef En-Nesyri",["ST"],[],82,"power")]},
 ];
-
-
 /* ---------- formations ---------- */
 const FORMATIONS:Record<string,Role[]>={
 "4-3-3 (Balance)":["GK","LB","CB","CB","RB","CM","CM","CM","LW","ST","RW"],
@@ -288,7 +286,7 @@ const cn=(n:string)=>n.replace(/\s*\([^)]*\)/g,"").trim();
 function poisson(l:number){const L=Math.exp(-l);let k=0,pr=1;do{k++;pr*=Math.random();}while(pr>L);return k-1;}
 const rosterStrength=(r:Roster)=>{const s=r.players.map(p=>p.ov).sort((a,b)=>b-a).slice(0,7);return s.reduce((a,b)=>a+b,0)/s.length;};
 function chemistry(placed:(Player|null)[]){let chem=0;const icons=placed.filter(p=>p&&p.ic).length;chem+=Math.min(6,icons*2);const g:Record<string,number>={};placed.forEach(p=>{if(p&&p._src){const k=p._src.club+p._src.era;g[k]=(g[k]||0)+1;}});let cl=0;Object.values(g).forEach(k=>{if(k>=2)cl+=(k-1);});chem+=Math.min(6,cl);return{chem,icons};}
-function simulate(slots:Slot[],formation:string,diff:string="medium"):SimResult{const filled=slots.filter(s=>s.player);const bu:Record<Unit,number[]>={gk:[],def:[],mid:[],att:[]};filled.forEach(s=>bu[unitOf(s.role)].push(roleFit(s.player!,s.role)));const avg=(a:number[])=>a.length?a.reduce((x,y)=>x+y,0)/a.length:35;const mod=FORM_MOD[formation];const gk=avg(bu.gk),def=avg(bu.def)*mod.def,mid=avg(bu.mid)*mod.mid,att=avg(bu.att)*mod.att;const{chem,icons}=chemistry(filled.map(s=>s.player));const attackWeights: Record<string, [number, number]> = {
+function simulate(slots:Slot[],formation:string,diff:string="medium"):SimResult{const filled=slots.filter(s=>s.player);const bu:Record<Unit,number[]>={gk:[],def:[],mid:[],att:[]};filled.forEach(s=>bu[unitOf(s.role)].push(roleFit(s.player!,s.role)));const avg=(a:number[])=>a.length?a.reduce((x,y)=>x+y,0)/a.length:35;const mod=FORM_MOD[formation];const gk=avg(bu.gk),defR=avg(bu.def),midR=avg(bu.mid),attR=avg(bu.att);const def=defR*mod.def,mid=midR*mod.mid,att=attR*mod.att;const{chem,icons}=chemistry(filled.map(s=>s.player));const attackWeights: Record<string, [number, number]> = {
   '4-3-3':   [0.70, 0.30],
   '4-4-2':   [0.68, 0.32],  
   '4-2-3-1': [0.65, 0.35],  
@@ -322,8 +320,50 @@ function simulate(slots:Slot[],formation:string,diff:string="medium"):SimResult{
       }
     }
   }
-  return{W,D,Lo,GF,GA,pts:W*3+D,log,chem,icons,units:{gk,def,mid,att}};}
+  return{W,D,Lo,GF,GA,pts:W*3+D,log,chem,icons,units:{gk:gk,def:defR,mid:midR,att:attR}};}
+// Hungarian algorithm: max-weight perfect assignment on a square weight matrix. Returns col index for each row.
 function bestXI(pool:Player[],formation:string):Slot[]{const uniq:Record<string,Player>={};pool.forEach(p=>{if(!uniq[p.id]||p.ov>uniq[p.id].ov)uniq[p.id]=p;});const players=Object.values(uniq);const roles:Slot[]=FORMATIONS[formation].map((r,i)=>({idx:i,role:r,player:null}));const order=[...roles].sort((a,b)=>(({gk:0,att:1,def:2,mid:3} as Record<Unit,number>)[unitOf(a.role)]-({gk:0,att:1,def:2,mid:3} as Record<Unit,number>)[unitOf(b.role)]));const used=new Set<string>();order.forEach(slot=>{let best:Player|null=null,bf=-1;players.forEach(p=>{if(used.has(p.id))return;const f=roleFit(p,slot.role);if(f>bf){bf=f;best=p;}});if(best){used.add((best as Player).id);roles[slot.idx].player=best;}});return roles;}
+
+// Max-weight assignment (Hungarian, O(n^3)) — minimises cost, so feed cost = BIG - weight.
+function hungarian(cost:number[][]):number[]{const n=cost.length;if(n===0)return[];const INF=1e9;const u=new Array(n+1).fill(0),v=new Array(n+1).fill(0),p=new Array(n+1).fill(0),way=new Array(n+1).fill(0);
+  for(let i=1;i<=n;i++){p[0]=i;let j0=0;const minv=new Array(n+1).fill(INF),used=new Array(n+1).fill(false);
+    do{used[j0]=true;const i0=p[j0];let delta=INF,j1=-1;
+      for(let j=1;j<=n;j++)if(!used[j]){const cur=cost[i0-1][j-1]-u[i0]-v[j];if(cur<minv[j]){minv[j]=cur;way[j]=j0;}if(minv[j]<delta){delta=minv[j];j1=j;}}
+      for(let j=0;j<=n;j++){if(used[j]){u[p[j]]+=delta;v[j]-=delta;}else minv[j]-=delta;}
+      j0=j1;}while(p[j0]!==0);
+    do{const j1=way[j0];p[j0]=p[j1];j0=j1;}while(j0);}
+  const res=new Array(n).fill(-1);for(let j=1;j<=n;j++)if(p[j]>0)res[p[j]-1]=j-1;return res;}
+
+// Best XI achievable from the ACTUAL rounds, taking exactly one player per round (one pick per spin).
+// Returns the assignment per slot and a map of which round optimally fills which slot.
+interface Round{club:string;era:string;slot:string;chosen:Player;roster:Player[];via:"spin"|"club"|"era";}
+function achievableXI(rounds:Round[],formation:string){
+  const roles=FORMATIONS[formation];const S=roles.length;const R=rounds.length;
+  if(R===0)return null;
+  const N=Math.max(R,S);const BIG=1e6;
+  // weight[r][s] = best roleFit of any eligible player in round r for slot s (+ remember the player)
+  const w:number[][]=[];const who:(Player|null)[][]=[];
+  for(let r=0;r<N;r++){w[r]=[];who[r]=[];for(let s=0;s<N;s++){
+    if(r<R&&s<S){let bf=0,bp:Player|null=null;const seen=new Set<string>();
+      rounds[r].roster.forEach(p=>{if(seen.has(p.id))return;seen.add(p.id);if(fitClass(p,roles[s])===null)return;const f=roleFit(p,roles[s]);if(f>bf){bf=f;bp=p;}});
+      w[r][s]=bf;who[r][s]=bp;}
+    else{w[r][s]=0;who[r][s]=null;}}}
+  const cost=w.map(row=>row.map(x=>BIG-x));
+  const asg=hungarian(cost); // asg[r] = slot index assigned to round r
+  // build per-slot result; resolve any duplicate player ids (rare: same player across two rounds) by keeping higher fit
+  const bySlot:({ri:number;p:Player;fit:number;role:string}|null)[]=new Array(S).fill(null);
+  const byRound:({si:number;p:Player;fit:number;role:string}|null)[]=new Array(R).fill(null);
+  const usedP=new Set<string>();
+  const order=[];for(let r=0;r<R;r++){const s=asg[r];if(s>=0&&s<S&&who[r][s])order.push({r,s,p:who[r][s] as Player,fit:w[r][s]});}
+  order.sort((a,b)=>b.fit-a.fit);
+  for(const o of order){if(usedP.has(o.p.id)||bySlot[o.s]){
+      // find an alternative player for this round/slot not yet used
+      let bf=0,bp:Player|null=null;rounds[o.r].roster.forEach(p=>{if(usedP.has(p.id))return;if(fitClass(p,roles[o.s])===null)return;const f=roleFit(p,roles[o.s]);if(f>bf){bf=f;bp=p;}});
+      if(!bp||bySlot[o.s])continue;o.p=bp;o.fit=bf;}
+    usedP.add(o.p.id);bySlot[o.s]={ri:o.r,p:o.p,fit:o.fit,role:roles[o.s]};byRound[o.r]={si:o.s,p:o.p,fit:o.fit,role:roles[o.s]};}
+  const xi:Slot[]=roles.map((role,i)=>({idx:i,role,player:bySlot[i]?bySlot[i]!.p:null}));
+  return {xi,bySlot,byRound};
+}
 
 function Badge({code,size=44}:{code:string;size?:number}){const cl=CLUBS[code];const[a,b]=cl.c;return(<svg width={size} height={size*1.18} viewBox="0 0 44 52" style={{flexShrink:0}}><defs><linearGradient id={"g"+code} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={a}/><stop offset="1" stopColor={b}/></linearGradient></defs><path d="M2 4 L42 4 L42 30 Q42 44 22 50 Q2 44 2 30 Z" fill={"url(#g"+code+")"} stroke="rgba(255,255,255,.55)" strokeWidth="1.5"/><text x="22" y="27" textAnchor="middle" fontSize="11" fontWeight="800" fill="#fff" style={{paintOrder:"stroke",stroke:"rgba(0,0,0,.4)",strokeWidth:2}}>{code}</text></svg>);}
 function Logo({size=44}:{size?:number}){return(<svg width={size*2.6} height={size} viewBox="0 0 130 50"><defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#9b8cff"/><stop offset="1" stopColor="#5de0c4"/></linearGradient></defs><path d="M5 6 L41 6 L41 30 Q41 44 23 49 Q5 44 5 30 Z" fill="url(#lg1)" opacity="0.18" stroke="url(#lg1)" strokeWidth="1.5"/><circle cx="23" cy="24" r="11" fill="none" stroke="url(#lg1)" strokeWidth="1.4"/><path d="M23 13 L26.5 20.5 L18.5 20.5 Z M16 23 L19 31 L13.5 26 Z M30 23 L27 31 L32.5 26 Z" fill="url(#lg1)"/><text x="52" y="34" fontSize="30" fontWeight="900" fill="url(#lg1)" letterSpacing="-1" fontFamily="ui-sans-serif,system-ui">38-0</text></svg>);}
@@ -348,6 +388,7 @@ export default function App(){
   const[soundOn,setSoundOn]=useState(true);
   const[jackpot,setJackpot]=useState(false);
   const[oracleOpen,setOracleOpen]=useState(false);
+  const[roundsOpen,setRoundsOpen]=useState(false);
   const[showIntro,setShowIntro]=useState(true);
   const[introFade,setIntroFade]=useState(false);
   useEffect(()=>{const t1=setTimeout(()=>setIntroFade(true),3000);const t2=setTimeout(()=>setShowIntro(false),3550);return()=>{clearTimeout(t1);clearTimeout(t2);};},[]);
@@ -378,6 +419,8 @@ export default function App(){
   const[moving,setMoving]=useState<Slot|null>(null);
   const[query,setQuery]=useState("");
   const[offered,setOffered]=useState<Player[]>([]);
+  const[rounds,setRounds]=useState<{club:string;era:string;slot:string;chosen:Player;roster:Player[];via:"spin"|"club"|"era"}[]>([]);
+  const spinVia=useRef<"spin"|"club"|"era">("spin");
   const[result,setResult]=useState<SimResult|null>(null);
   const[copied,setCopied]=useState(false);
 
@@ -407,7 +450,7 @@ export default function App(){
   function wClub(lucky=false){const cfg=lucky?DIFF_SPIN.easy:(DIFF_SPIN[diff]||DIFF_SPIN.medium);const pf=Math.max(0,(squadPower-84)/10);const cs=Object.keys(CLUB_ERAS);const raw=cs.map(c=>spinWeight(clubBest(c),clubHasIcon(c),pf,cfg));return pickWeighted(cs,raw,cfg.floor);}
   function wEra(club:string,ex?:string,lucky=false){const cfg=lucky?DIFF_SPIN.easy:(DIFF_SPIN[diff]||DIFF_SPIN.medium);const pf=Math.max(0,(squadPower-84)/10);const es=CLUB_ERAS[club].filter(e=>e!==ex);const pool=es.length?es:CLUB_ERAS[club];const raw=pool.map(e=>spinWeight(rosterStrength(rosterOf(club,e)!),eraHasIcon(club,e),pf,cfg));return pickWeighted(pool,raw,cfg.floor);}
 
-  function start(){setPhase("play");setSlots(FORMATIONS[formation].map((r,i)=>({idx:i,role:r,player:null})));setSpin(null);setSpinning(false);setReelClub(null);setReelEra(null);setUsedClub(false);setUsedEra(false);setSel(null);setMoving(null);setResult(null);setOffered([]);setQuery("");}
+  function start(){setPhase("play");setSlots(FORMATIONS[formation].map((r,i)=>({idx:i,role:r,player:null})));setSpin(null);setSpinning(false);setReelClub(null);setReelEra(null);setUsedClub(false);setUsedEra(false);setSel(null);setMoving(null);setResult(null);setOffered([]);setRounds([]);spinVia.current="spin";setQuery("");}
 
   function revealRoster(club: string, era: string, attempt = 0) {
     const r = rosterOf(club, era);
@@ -440,6 +483,7 @@ export default function App(){
   }
   function spin1(){ // single spin: club + era together
     if(spinning||allFull)return;
+    spinVia.current="spin";
     setSel(null);setMoving(null);setSpin(null);setSpinning(true);
     const lucky=Math.random()<(DIFF_LUCKY[diff]||0);
     const ck=Object.keys(CLUBS);let n=0;const total=16+Math.floor(Math.random()*6);
@@ -448,13 +492,13 @@ export default function App(){
   function changeClub(){
     if(usedClub||!spin||spinning)return;
     const opts=Object.keys(CLUB_ERAS).filter(c=>c!==spin.club&&CLUB_ERAS[c].includes(spin.era));
-    if(!opts.length)return;setUsedClub(true);setSel(null);setSpin(null);setSpinning(true);
+    if(!opts.length)return;setUsedClub(true);spinVia.current="club";setSel(null);setSpin(null);setSpinning(true);
     let n=0;const iv=setInterval(()=>{setReelClub(opts[Math.floor(Math.random()*opts.length)]);sfx.reel();n++;if(n>=12){clearInterval(iv);const c=opts[Math.floor(Math.random()*opts.length)];setReelClub(c);sfx.lock();setTimeout(()=>revealRoster(c,reelEra??spin.era),100);}},65);
   }
   function changeEra(){
     if(usedEra||!spin||spinning)return;
     const opts=CLUB_ERAS[spin.club].filter(e=>e!==spin.era);
-    if(!opts.length)return;setUsedEra(true);setSel(null);const club=spin.club;setSpin(null);setSpinning(true);
+    if(!opts.length)return;setUsedEra(true);spinVia.current="era";setSel(null);const club=spin.club;setSpin(null);setSpinning(true);
     let n=0;const iv=setInterval(()=>{setReelEra(opts[Math.floor(Math.random()*opts.length)]);sfx.reel();n++;if(n>=12){clearInterval(iv);const e=opts[Math.floor(Math.random()*opts.length)];setReelEra(e);sfx.lock();setTimeout(()=>revealRoster(club,e),100);}},65);
   }
 
@@ -470,6 +514,7 @@ export default function App(){
     if(slot.player||!fitClass(sel,slot.role))return;
     const src=spin?{club:spin.club,era:spin.era}:sel._src;
     setSlots(s=>s.map(sl=>sl.idx===slot.idx?{...sl,player:{...sel,_src:src}}:sl));
+    if(spin){const rr=rosterOf(spin.club,spin.era);if(rr)setRounds(rs=>[...rs,{club:spin.club,era:spin.era,slot:slot.role,chosen:sel,roster:rr.players,via:spinVia.current}]);}
     sfx.place();
     setSel(null);setSpin(null);setReelClub(null);setReelEra(null);setQuery(""); // <-- clears the spin so the Spin button returns
   }
@@ -480,26 +525,56 @@ export default function App(){
   }
   function runSeason(){const r=simulate(slots,formation,diff);setResult(r);setPhase("results");setTimeout(()=>{if(r.W===38)sfx.fanfare();else if(r.Lo===0||r.pts>=90)sfx.success();else sfx.thud();},140);}
   const oracle=useMemo(()=>{
-    if(phase!=="results"||offered.length<11)return null;
+    if(phase!=="results"||rounds.length<11)return null;
+    // Best XI ACHIEVABLE from the actual rounds (one pick per spin), evaluated per formation.
     const ranked=Object.keys(FORMATIONS).map(f=>{
-      const xi=bestXI(offered,f);
-      if(xi.some(s=>!s.player))return null;
+      const a=achievableXI(rounds,f);
+      if(!a||a.xi.some(s=>!s.player))return null;
       let pts=0,W=0,D=0,L=0;const N=14;
-      for(let i=0;i<N;i++){const r=simulate(xi,f,diff);pts+=r.pts;W+=r.W;D+=r.D;L+=r.Lo;}
-      const pl=xi.map(s=>s.player as Player);
-      return {f,xi,pts:pts/N,W:Math.round(W/N),D:Math.round(D/N),L:Math.round(L/N),avgOV:pl.reduce((a,p)=>a+p.ov,0)/pl.length,icons:pl.filter(p=>p.ic).length};
-    }).filter(Boolean) as {f:string;xi:Slot[];pts:number;W:number;D:number;L:number;avgOV:number;icons:number}[];
+      for(let i=0;i<N;i++){const r=simulate(a.xi,f,diff);pts+=r.pts;W+=r.W;D+=r.D;L+=r.Lo;}
+      const pl=a.xi.map(s=>s.player as Player);
+      return {f,a,pts:pts/N,W:Math.round(W/N),D:Math.round(D/N),L:Math.round(L/N),avgOV:pl.reduce((x,p)=>x+p.ov,0)/pl.length};
+    }).filter(Boolean) as {f:string;a:NonNullable<ReturnType<typeof achievableXI>>;pts:number;W:number;D:number;L:number;avgOV:number}[];
     if(!ranked.length)return null;
-    ranked.sort((a,b)=>b.pts-a.pts);
+    ranked.sort((x,y)=>y.pts-x.pts);
     const best=ranked[0];
-    const curBest=bestXI(offered,formation);
-    const mistakes:{role:string;your:Player|null;better:Player;gain:number}[]=[];
-    slots.forEach(s=>{const opt=curBest.find(o=>o.idx===s.idx);if(!opt||!opt.player)return;
-      if(!s.player){mistakes.push({role:s.role,your:null,better:opt.player,gain:roleFit(opt.player,s.role)});return;}
-      if(opt.player.id!==s.player.id){const yf=roleFit(s.player,s.role),bf=roleFit(opt.player,s.role);if(bf>yf+0.5)mistakes.push({role:s.role,your:s.player,better:opt.player,gain:bf-yf});}});
+    const cur=achievableXI(rounds,formation); // optimal use of your rounds IN your formation
+    // out-of-position players in your actual XI (effective OV dropped by playing off-role)
+    const outOfPos=slots.filter(s=>s.player&&roleFit(s.player as Player,s.role)<(s.player as Player).ov-0.5)
+      .map(s=>({role:s.role,p:s.player as Player,ov:(s.player as Player).ov,eff:Math.round(roleFit(s.player as Player,s.role))}))
+      .sort((a,b)=>(b.ov-b.eff)-(a.ov-a.eff));
+    // swaps: your XI vs the achievable optimal XI in YOUR formation (respects one-pick-per-round)
+    const mistakes:{role:string;your:Player|null;better:Player;gain:number;reason:string}[]=[];
+    if(cur)slots.forEach(s=>{const opt=cur.xi.find(o=>o.idx===s.idx);if(!opt||!opt.player)return;
+      if(!s.player){mistakes.push({role:s.role,your:null,better:opt.player,gain:roleFit(opt.player,s.role),reason:"empty"});return;}
+      if(opt.player.id!==s.player.id){const yf=roleFit(s.player,s.role),bf=roleFit(opt.player,s.role);
+        if(bf>yf+0.5)mistakes.push({role:s.role,your:s.player,better:opt.player,gain:bf-yf,reason:roleFit(s.player,s.role)<s.player.ov-0.5?"out of position":"better in this spot"});}});
     mistakes.sort((a,b)=>b.gain-a.gain);
-    return {best,ranked,mistakes,sameForm:best.f===formation,poolSize:new Set(offered.map(p=>p.id)).size};
-  },[phase,offered,formation,diff,slots]);
+    // round-by-round, context-aware: the plan (cur) allocates ONE player per round across the whole XI
+    const review=cur?rounds.map((r,i)=>{const opt=cur.byRound[i];
+      return {n:i+1,club:r.club,era:r.era,via:r.via,yourSlot:r.slot,yourPlayer:r.chosen,yourFit:roleFit(r.chosen,r.slot),
+        optRole:opt?opt.role:null,optPlayer:opt?opt.p:null,optFit:opt?opt.fit:0,
+        optimal:!!(opt&&opt.p.id===r.chosen.id&&opt.role===r.slot),
+        reposition:!!(opt&&opt.p.id===r.chosen.id&&opt.role!==r.slot)};
+    }):[];
+    const goodPicks=review.filter(r=>r.optimal||r.reposition).length;
+    // re-spin (era) EV: where the era re-spin was still available and the pick was weak, were the odds in favour?
+    const eraUsedAt=rounds.findIndex(r=>r.via==="era");
+    const respin:{n:number;club:string;slot:string;your:Player;yourFit:number;ev:number;betterCount:number;total:number;examples:{era:string;p:Player}[]}[]=[];
+    rounds.forEach((r,i)=>{
+      const avail=(eraUsedAt===-1||eraUsedAt>i)&&r.via!=="era";if(!avail)return;
+      const eras=CLUB_ERAS[r.club]?CLUB_ERAS[r.club].filter(e=>e!==r.era):[];if(!eras.length)return;
+      const yourFit=roleFit(r.chosen,r.slot);
+      const opts=eras.map(e=>{const rr=rosterOf(r.club,e);if(!rr)return null;let bf=0,bp:Player|null=null;rr.players.forEach(p=>{if(fitClass(p,r.slot)===null)return;const f=roleFit(p,r.slot);if(f>bf){bf=f;bp=p;}});return bp?{era:e,p:bp,fit:bf}:{era:e,p:null,fit:0};}).filter(Boolean) as {era:string;p:Player|null;fit:number}[];
+      const ev=opts.reduce((a,o)=>a+o.fit,0)/eras.length;
+      const better=opts.filter(o=>o.p&&o.fit>yourFit+1);
+      if(ev>yourFit+1.5&&better.length)respin.push({n:i+1,club:r.club,slot:r.slot,your:r.chosen,yourFit,ev,betterCount:better.length,total:eras.length,examples:better.sort((a,b)=>b.fit-a.fit).slice(0,3).map(o=>({era:o.era,p:o.p as Player}))});
+    });
+    respin.sort((a,b)=>(b.ev-b.yourFit)-(a.ev-a.yourFit));
+    const unitAvg=(xi:Slot[],units:Unit[])=>{const ps=xi.filter(s=>s.player&&units.includes(unitOf(s.role)));return ps.length?ps.reduce((a,s)=>a+roleFit(s.player as Player,s.role),0)/ps.length:0;};
+    const balance=cur?{yourAtk:Math.round(unitAvg(slots,["att"])),yourDef:Math.round(unitAvg(slots,["gk","def"])),yourMid:Math.round(unitAvg(slots,["mid"]))}:null;
+    return {best,mistakes,sameForm:best.f===formation,poolSize:new Set(rounds.flatMap(r=>r.roster.map(p=>p.id))).size,review,goodPicks,outOfPos,respin:respin.slice(0,3),balance};
+  },[phase,rounds,formation,diff,slots,CLUB_ERAS]);
 
   function verdict(r:SimResult){
     if(r.W===38)return{title:"THE IMPOSSIBLE SEASON",sub:"38-0-0. The greatest team ever assembled.",tier:"legend"};
@@ -560,7 +635,7 @@ export default function App(){
             <div style={{display:"flex",alignItems:"center",gap:9}}><Wand2 size={19} style={{color:accP}}/><span style={{fontSize:17,fontWeight:900,color:t.text}}>Oracle Analysis</span></div>
             <button onClick={()=>setOracleOpen(false)} style={{...glass,borderRadius:10,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",color:t.text,cursor:"pointer",fontSize:15,fontWeight:700,lineHeight:1,padding:0}}>✕</button>
           </div>
-          <div style={{fontSize:12,color:t.sub,marginBottom:16}}>Based on all {oracle.poolSize} players from your spins & re-spins.</div>
+          <div style={{fontSize:12,color:t.sub,marginBottom:16}}>The best you could've done with the <b style={{color:t.text}}>exact spins you played</b> — one pick per spin, no hindsight.</div>
           <div style={{display:"flex",gap:10,marginBottom:16}}>
             <div style={{flex:1,...glass,borderRadius:13,padding:"11px 13px"}}>
               <div style={{fontSize:10.5,color:t.sub,fontWeight:800,marginBottom:3,letterSpacing:.5}}>YOUR RESULT</div>
@@ -573,14 +648,28 @@ export default function App(){
               <div style={{fontSize:12,color:t.sub}}>~{Math.round(oracle.best.pts)} pts</div>
             </div>
           </div>
+          {oracle.balance&&<div style={{...glass,borderRadius:13,padding:"11px 14px",marginBottom:16}}>
+            <div style={{fontSize:10.5,color:t.sub,fontWeight:800,marginBottom:8,letterSpacing:.5}}>YOUR SQUAD BALANCE</div>
+            <div style={{display:"flex",gap:14}}>{([["Attack",oracle.balance.yourAtk],["Midfield",oracle.balance.yourMid],["Defence",oracle.balance.yourDef]] as [string,number][]).map(([l,v])=>{const lo=v<=Math.min(oracle.balance!.yourAtk,oracle.balance!.yourMid,oracle.balance!.yourDef);return<div key={l} style={{flex:1}}><div style={{fontSize:11,color:t.sub}}>{l}</div><div style={{fontSize:17,fontWeight:900,color:lo?"#ff8c6b":t.text}}>{v}</div></div>;})}</div>
+          </div>}
           <div style={{...glass,borderRadius:13,padding:"12px 14px",marginBottom:16}}>
             <div style={{fontSize:10.5,color:t.sub,fontWeight:800,marginBottom:5,letterSpacing:.5}}>OPTIMAL FORMATION</div>
             <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><span style={{fontSize:16,fontWeight:900,color:accT}}>{oracle.best.f}</span>{oracle.sameForm?<span style={{fontSize:11.5,color:accT,fontWeight:800,display:"flex",alignItems:"center",gap:3}}><Check size={13}/> you used this</span>:<span style={{fontSize:11.5,color:t.sub}}>you played {formation}</span>}</div>
-            {!oracle.sameForm&&<div style={{fontSize:11.5,color:t.sub,marginTop:6,lineHeight:1.45}}>The same players in <b style={{color:t.text}}>{oracle.best.f}</b> would project ~{Math.round(oracle.best.pts)} pts — try this shape next run.</div>}
+            {!oracle.sameForm&&<div style={{fontSize:11.5,color:t.sub,marginTop:6,lineHeight:1.45}}>Same players, shape changed to <b style={{color:t.text}}>{oracle.best.f}</b> → ~{Math.round(oracle.best.pts)} pts{oracle.outOfPos.length?" and it fields your players more naturally":""}.</div>}
           </div>
+          {oracle.outOfPos.length>0&&<div style={{marginBottom:16}}>
+            <div style={{fontSize:12.5,fontWeight:800,color:t.text,marginBottom:8}}>Played out of position</div>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>{oracle.outOfPos.map((o,i)=>(
+              <div key={i} style={{...glass,borderRadius:11,padding:"8px 12px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                <span style={{fontSize:12.5,fontWeight:700,color:t.text}}>{cn(o.p.n)}</span>
+                <span style={{fontSize:11,color:t.sub}}>at {o.role}</span>
+                <span style={{marginLeft:"auto",fontSize:12,fontWeight:800,color:t.sub}}>{o.ov} → <span style={{color:"#ff8c6b"}}>{o.eff}</span> <span style={{fontSize:10.5,color:"#ff8c6b"}}>(-{o.ov-o.eff})</span></span>
+              </div>
+            ))}</div>
+          </div>}
           <div style={{fontSize:12.5,fontWeight:800,color:t.text,marginBottom:8}}>Best possible XI <span style={{color:t.sub,fontWeight:600,fontSize:11.5}}>· {oracle.best.f}</span></div>
           <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr",gap:6,marginBottom:18}}>
-            {oracle.best.xi.map(s=>{const p=s.player as Player;return(
+            {oracle.best.a.xi.map(s=>{const p=s.player as Player;return(
               <div key={s.idx} style={{display:"flex",alignItems:"center",gap:8,...glass,borderRadius:10,padding:"7px 10px"}}>
                 <span style={{fontSize:10,fontWeight:800,color:t.sub,width:32,flexShrink:0}}>{s.role}</span>
                 <span style={{fontSize:12.5,fontWeight:700,color:t.text,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cn(p.n)}{p.ic&&<span style={{color:accT}}> ★</span>}</span>
@@ -588,14 +677,24 @@ export default function App(){
               </div>
             );})}
           </div>
+          {oracle.respin.length>0&&<div style={{marginBottom:18}}>
+            <div style={{fontSize:12.5,fontWeight:800,color:t.text,marginBottom:4}}>Re-spin odds you could've used</div>
+            <div style={{fontSize:11,color:t.sub,marginBottom:8}}>Spots where re-spinning the era had the probabilities in your favour.</div>
+            <div style={{display:"flex",flexDirection:"column",gap:7}}>{oracle.respin.map((rs,i)=>(
+              <div key={i} style={{...glass,borderRadius:11,padding:"10px 12px"}}>
+                <div style={{fontSize:12.5,color:t.text}}>R{rs.n} · you took <b>{cn(rs.your.n)}</b> ({Math.round(rs.yourFit)}) at {rs.slot}.</div>
+                <div style={{fontSize:11.5,color:t.sub,marginTop:4,lineHeight:1.5}}>Re-spinning the era: <b style={{color:accT}}>{rs.betterCount} of {rs.total}</b> other {rs.club} eras had a stronger {rs.slot} (e.g. {rs.examples.map(e=>cn(e.p.n)+" "+e.p.ov).join(", ")}). Odds favoured the gamble.</div>
+              </div>
+            ))}</div>
+          </div>}
           <div style={{fontSize:12.5,fontWeight:800,color:t.text,marginBottom:8}}>What you could improve <span style={{color:t.sub,fontWeight:600,fontSize:11.5}}>· your {formation}</span></div>
           {oracle.mistakes.length===0?(
-            <div style={{...glass,borderRadius:12,padding:"12px 14px",fontSize:12.5,color:accT,fontWeight:700,display:"flex",alignItems:"center",gap:8}}><Check size={16}/> You fielded the optimal XI for your formation — flawless squad building!</div>
+            <div style={{...glass,borderRadius:12,padding:"12px 14px",fontSize:12.5,color:accT,fontWeight:700,display:"flex",alignItems:"center",gap:8}}><Check size={16}/> You made the best XI possible from your spins — flawless.</div>
           ):(
             <div style={{display:"flex",flexDirection:"column",gap:7}}>
               {oracle.mistakes.slice(0,8).map((m,i)=>(
                 <div key={i} style={{...glass,borderRadius:11,padding:"9px 12px"}}>
-                  <div style={{fontSize:10,fontWeight:800,color:t.sub,marginBottom:4,letterSpacing:.5}}>{m.role}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4}}><span style={{fontSize:10,fontWeight:800,color:t.sub,letterSpacing:.5}}>{m.role}</span><span style={{fontSize:9.5,color:accP,fontWeight:700}}>{m.reason}</span></div>
                   <div style={{display:"flex",alignItems:"center",gap:7,fontSize:12.5,flexWrap:"wrap"}}>
                     <span style={{color:t.sub,textDecoration:m.your?"line-through":"none"}}>{m.your?cn(m.your.n)+" ("+m.your.ov+")":"— empty —"}</span>
                     <ArrowLeftRight size={12} style={{color:accP,flexShrink:0}}/>
@@ -605,6 +704,42 @@ export default function App(){
               ))}
             </div>
           )}
+          {oracle.review.length>0&&(<>
+            <button onClick={()=>setRoundsOpen(o=>!o)} style={{width:"100%",marginTop:16,...glass,borderRadius:12,padding:"11px 13px",display:"flex",alignItems:"center",gap:9,cursor:"pointer",textAlign:"left"}}>
+              <Repeat size={15} style={{color:accT,flexShrink:0}}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:12.5,fontWeight:800,color:t.text}}>Round-by-round replay</div>
+                <div style={{fontSize:11,color:t.sub}}>{oracle.goodPicks}/{oracle.review.length} spins used optimally</div>
+              </div>
+              <ChevronDown size={17} style={{color:t.sub,flexShrink:0,transform:roundsOpen?"rotate(180deg)":"none",transition:"transform .15s"}}/>
+            </button>
+            {roundsOpen&&<div style={{display:"flex",flexDirection:"column",gap:6,marginTop:8}}>
+              {oracle.review.map(r=>(
+                <div key={r.n} style={{...glass,borderRadius:11,padding:"9px 12px"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5,flexWrap:"wrap"}}>
+                    <span style={{fontSize:11,fontWeight:900,color:t.text}}>R{r.n}</span>
+                    <span style={{fontSize:11.5,fontWeight:700,color:t.sub}}>{r.club} · {r.era}</span>
+                    {r.via!=="spin"&&<span style={{fontSize:9.5,fontWeight:800,color:accP,background:dark?"rgba(180,168,255,.15)":"rgba(107,79,255,.1)",padding:"2px 6px",borderRadius:6,textTransform:"uppercase",letterSpacing:.3}}>re-spun {r.via==="club"?"club":"era"}</span>}
+                    {(r.optimal||r.reposition)&&<span style={{fontSize:9.5,fontWeight:800,color:accT,marginLeft:"auto"}}>✓ optimal</span>}
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:6,fontSize:12.5,flexWrap:"wrap"}}>
+                    <span style={{fontSize:9.5,fontWeight:800,color:t.sub,width:30}}>{r.yourSlot}</span>
+                    <span style={{color:t.text,fontWeight:700}}>{cn(r.yourPlayer.n)} ({r.yourPlayer.ov}){r.yourPlayer.ic&&<span style={{color:accT}}> ★</span>}</span>
+                    {Math.round(r.yourFit)<r.yourPlayer.ov&&<span style={{fontSize:10,color:"#ff8c6b"}}>→ {Math.round(r.yourFit)} off-role</span>}
+                  </div>
+                  {r.reposition?(
+                    <div style={{fontSize:11.5,color:accT,marginTop:4,fontWeight:700,display:"flex",alignItems:"center",gap:5}}><Check size={11}/> right player — even better at {r.optRole}</div>
+                  ):r.optimal?(
+                    <div style={{fontSize:11,color:accT,marginTop:4,fontWeight:700,display:"flex",alignItems:"center",gap:5}}><Check size={11}/> best use of this spin</div>
+                  ):r.optPlayer?(
+                    <div style={{fontSize:11.5,color:t.sub,marginTop:4,display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}><ArrowLeftRight size={11} style={{color:accP}}/> Plan's pick here: <b style={{color:t.text,fontWeight:800}}>{cn(r.optPlayer.n)} ({r.optPlayer.ov})</b> → {r.optRole}</div>
+                  ):(
+                    <div style={{fontSize:11,color:t.sub,marginTop:4}}>no stronger fit available from this spin</div>
+                  )}
+                </div>
+              ))}
+            </div>}
+          </>)}
         </div>
       </div>
     )}
