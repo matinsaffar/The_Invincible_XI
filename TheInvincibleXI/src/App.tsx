@@ -286,8 +286,53 @@ const statsOf=(p:Player)=>(ARCH[p.ar]||ARCH.complete).map(([l,d])=>({l,v:clamp(p
 const cn=(n:string)=>n.replace(/\s*\([^)]*\)/g,"").trim();
 function poisson(l:number){const L=Math.exp(-l);let k=0,pr=1;do{k++;pr*=Math.random();}while(pr>L);return k-1;}
 const rosterStrength=(r:Roster)=>{const s=r.players.map(p=>p.ov).sort((a,b)=>b-a).slice(0,7);return s.reduce((a,b)=>a+b,0)/s.length;};
-function chemistry(placed:(Player|null)[]){let chem=0;const icons=placed.filter(p=>p&&p.ic).length;chem+=Math.min(6,icons*2);const g:Record<string,number>={};placed.forEach(p=>{if(p&&p._src){const k=p._src.club+p._src.era;g[k]=(g[k]||0)+1;}});let cl=0;Object.values(g).forEach(k=>{if(k>=2)cl+=(k-1);});chem+=Math.min(6,cl);return{chem,icons};}
-function simulate(slots:Slot[],formation:string,diff:string="medium"):SimResult{const filled=slots.filter(s=>s.player);const bu:Record<Unit,number[]>={gk:[],def:[],mid:[],att:[]};filled.forEach(s=>bu[unitOf(s.role)].push(roleFit(s.player!,s.role)));const avg=(a:number[])=>a.length?a.reduce((x,y)=>x+y,0)/a.length:35;const mod=FORM_MOD[formation];const gk=avg(bu.gk),defR=avg(bu.def),midR=avg(bu.mid),attR=avg(bu.att);const def=defR*mod.def,mid=midR*mod.mid,att=attR*mod.att;const{chem,icons}=chemistry(filled.map(s=>s.player));const attackWeights: Record<string, [number, number]> = {
+interface ChemDetail{score:number;icons:number;clubGroups:{club:string;n:number}[];leagueGroups:{league:string;n:number}[];links:number;isolated:number;perId:Record<string,number>;}
+// Whole-team chemistry: every PAIR of players in the XI is checked (not just adjacent slots).
+// Sources: same club (era-agnostic), same league, and icons. Era is ignored entirely.
+function chemDetail(placed:(Player|null)[]):ChemDetail{
+  const ps=placed.filter(Boolean) as Player[];
+  const icons=ps.filter(p=>p.ic).length;
+  const leagueOf=(p:Player)=>p._src?(CLUBS[p._src.club]?.league??null):null;
+  const perId:Record<string,number>={};ps.forEach(p=>perId[p.id]=0);
+  let clubPairs=0,leaguePairs=0;
+  for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++){
+    const a=ps[i],b=ps[j];const ca=a._src?.club,cb=b._src?.club;
+    if(ca&&cb&&ca===cb){clubPairs++;perId[a.id]++;perId[b.id]++;}
+    else{const la=leagueOf(a),lb=leagueOf(b);if(la&&lb&&la===lb){leaguePairs++;perId[a.id]++;perId[b.id]++;}}
+  }
+  const CLUB=4,LEAGUE=0.7,ICON=3,NORM=60;
+  const raw=clubPairs*CLUB+leaguePairs*LEAGUE+icons*ICON;
+  const score=Math.max(0,Math.min(100,Math.round(raw/NORM*100)));
+  const cc:Record<string,number>={};ps.forEach(p=>{if(p._src)cc[p._src.club]=(cc[p._src.club]||0)+1;});
+  const clubGroups=Object.entries(cc).filter(([,n])=>n>=2).map(([club,n])=>({club,n})).sort((a,b)=>b.n-a.n);
+  const lc:Record<string,number>={};ps.forEach(p=>{const l=leagueOf(p);if(l)lc[l]=(lc[l]||0)+1;});
+  const leagueGroups=Object.entries(lc).filter(([,n])=>n>=2).map(([league,n])=>({league,n})).sort((a,b)=>b.n-a.n);
+  const isolated=ps.filter(p=>perId[p.id]===0&&!p.ic).length;
+  return{score,icons,clubGroups,leagueGroups,links:clubPairs+leaguePairs,isolated,perId};
+}
+
+interface Moment{md:number;tag:string;line:string;tone:"gold"|"green"|"red"|"blue";}
+// Pull 2-3 narrative beats out of the 38-match log so the season has a story, not just a scoreline.
+function seasonMoments(log:{gf:number;ga:number;res:string}[],W:number):Moment[]{
+  if(!log.length)return[];const N=log.length;const out:Moment[]=[];
+  let bi=-1,bm=-2;log.forEach((m,i)=>{if(m.res==="W"){const mg=m.gf-m.ga;if(mg>bm||(mg===bm&&bi>=0&&m.gf>log[bi].gf)){bm=mg;bi=i;}}});
+  const fin=log[N-1];
+  if(W===N){
+    out.push({md:N,tag:"INVINCIBLE",line:`Matchday ${N}: completed the perfect season ${fin.gf}-${fin.ga}. Played ${N}, won ${N}, lost none.`,tone:"gold"});
+    if(bi>=0)out.push({md:bi+1,tag:"Statement",line:`Tore a side apart ${log[bi].gf}-${log[bi].ga} — peak of the run.`,tone:"green"});
+    let ni=-1;for(let i=N-1;i>=0;i--){if(log[i].res==="W"&&log[i].gf-log[i].ga===1){ni=i;break;}}
+    if(ni>=0)out.push({md:ni+1,tag:"Nervy",line:`Survived a tense ${log[ni].gf}-${log[ni].ga} to keep the record spotless.`,tone:"blue"});
+  }else{
+    const fs=log.findIndex(m=>m.res!=="W");
+    if(fs>=0)out.push({md:fs+1,tag:log[fs].res==="L"?"The slip":"First dropped points",line:`Matchday ${fs+1}: ${log[fs].res==="L"?"lost":"drew"} ${log[fs].gf}-${log[fs].ga} — the unbeaten dream was over.`,tone:"red"});
+    if(bi>=0)out.push({md:bi+1,tag:"Biggest win",line:`Hammered them ${log[bi].gf}-${log[bi].ga} on the season's best day.`,tone:"green"});
+    let best=0,cur=0,end=0;log.forEach((m,i)=>{if(m.res!=="L"){cur++;if(cur>best){best=cur;end=i;}}else cur=0;});
+    if(best>=6)out.push({md:end+1,tag:"On a tear",line:`Went ${best} games unbeaten through matchday ${end+1}.`,tone:"blue"});
+    out.push({md:N,tag:"Finale",line:`Signed off ${fin.res==="W"?"with a win":fin.res==="D"?"with a draw":"in defeat"} ${fin.gf}-${fin.ga}.`,tone:fin.res==="W"?"green":"blue"});
+  }
+  const seen=new Set<number>();return out.filter(m=>seen.has(m.md)?false:(seen.add(m.md),true)).slice(0,3);
+}
+function simulate(slots:Slot[],formation:string,diff:string="medium"):SimResult{const filled=slots.filter(s=>s.player);const bu:Record<Unit,number[]>={gk:[],def:[],mid:[],att:[]};filled.forEach(s=>bu[unitOf(s.role)].push(roleFit(s.player!,s.role)));const avg=(a:number[])=>a.length?a.reduce((x,y)=>x+y,0)/a.length:35;const mod=FORM_MOD[formation];const gk=avg(bu.gk),defR=avg(bu.def),midR=avg(bu.mid),attR=avg(bu.att);const def=defR*mod.def,mid=midR*mod.mid,att=attR*mod.att;const _cd=chemDetail(filled.map(s=>s.player));const chem=_cd.score,icons=_cd.icons;const attackWeights: Record<string, [number, number]> = {
   '4-3-3':   [0.70, 0.30],
   '4-4-2':   [0.68, 0.32],  
   '4-2-3-1': [0.65, 0.35],  
@@ -303,7 +348,7 @@ function simulate(slots:Slot[],formation:string,diff:string="medium"):SimResult{
     '5-4-1':   [0.65, 0.26, 0.09],  
   };
   const [dw, gkw, mdw] = defenseWeights[formation] ?? [0.60, 0.25, 0.15];
-  let defense = def * dw + gk * gkw + mid * mdw;const _ovs=filled.map(s=>s.player!.ov);const _avgOV=_ovs.length?_ovs.reduce((a,b)=>a+b,0)/_ovs.length:70;const _quality=Math.max(0,Math.min(1,(_avgOV-83)/10));const _boost=1+(DIFF_DOM[diff]??DIFF_DOM.medium)*_quality;attack*=_boost;defense*=_boost;let W=0,D=0,Lo=0,GF=0,GA=0;const log:{gf:number;ga:number;res:string}[]=[];for(let i=0;i<38;i++){const roll = Math.random();
+  let defense = def * dw + gk * gkw + mid * mdw;const _ovs=filled.map(s=>s.player!.ov);const _avgOV=_ovs.length?_ovs.reduce((a,b)=>a+b,0)/_ovs.length:70;const _quality=Math.max(0,Math.min(1,(_avgOV-83)/10));const _boost=1+(DIFF_DOM[diff]??DIFF_DOM.medium)*_quality;attack*=_boost;defense*=_boost;const _chemBoost=1+0.025*(chem/100);attack*=_chemBoost;defense*=_chemBoost;let W=0,D=0,Lo=0,GF=0,GA=0;const log:{gf:number;ga:number;res:string}[]=[];for(let i=0;i<38;i++){const roll = Math.random();
   const oppBase = roll < 0.15 ? 60 + Math.random() * 10 : roll < 0.70 ? 70 + Math.random() * 12 : roll < 0.92 ? 82 + Math.random() * 8 : 90 + Math.random() * 6; const oppAtk = Math.min(99, oppBase + (Math.random() * 10 - 5)); const oppDef = Math.min(99, oppBase + (Math.random() * 10 - 5));const lf = 1.5  * Math.pow(attack / oppDef, 1.7);
   const la = 1.32 * Math.pow(oppAtk / defense, 2.11) - Math.min(0.12, icons * 0.02);const gf=Math.min(7,poisson(lf)),ga=Math.min(7,poisson(la));GF+=gf;GA+=ga;let res;if(gf>ga){W++;res="W";}else if(gf===ga){D++;res="D";}else{Lo++;res="L";}log.push({gf,ga,res});}
   /* Hope mechanic (medium/hard only): a quality squad that just missed tends to miss NARROWLY, so you feel
@@ -609,6 +654,8 @@ export default function App(){
   const filteredPlayers=roster?roster.players.filter(p=>cn(p.n).toLowerCase().includes(query.toLowerCase())):[];
   const highlight=sel||(moving&&moving.player);
   const v=phase==="results"&&result?verdict(result):null;
+  const liveChem=useMemo(()=>chemDetail(slots.map(s=>s.player)),[slots]);
+  const moments=useMemo(()=>result?seasonMoments(result.log,result.W):[],[result]);
   const TIER_BG:Record<string,string>={legend:"linear-gradient(135deg,#ffd86b,#ff8c6b,#ff5d8f)",gold:"linear-gradient(135deg,#ffd86b,#f7a93b)",silver:"linear-gradient(135deg,#cfd8ff,#9bb0d8)",bronze:"linear-gradient(135deg,#d9a877,#a9784f)"};
   const tc=v?TIER_BG[v.tier]:"";
 
@@ -791,6 +838,19 @@ export default function App(){
           <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}><span style={{fontSize:12.5,color:t.sub}}>Formation</span><select value={formation} onChange={e=>changeFormation(e.target.value)} style={{background:t.chip,color:t.text,border:"1px solid "+t.glassB,borderRadius:10,padding:"7px 10px",fontSize:13,fontWeight:700,cursor:"pointer"}}>{Object.keys(FORMATIONS).map(f=><option key={f} value={f} style={{color:"#000"}}>{f}</option>)}</select><span style={{fontSize:12,color:t.sub,padding:"4px 10px",borderRadius:8,background:t.chip,display:"inline-flex",alignItems:"center",gap:5}}>{DIFFS.find(d=>d.id===diff)?.emoji} {DIFFS.find(d=>d.id===diff)?.label}</span><button onClick={()=>setShowStats(s=>!s)} title="Toggle overalls & stats" style={{fontSize:12,fontWeight:700,color:t.text,padding:"4px 10px",borderRadius:8,background:t.chip,border:"1px solid "+t.glassB,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:5}}>{showStats?<Eye size={13}/>:<EyeOff size={13}/>}{showStats?"Stats":"Hidden"}</button></div>
           <div style={{display:"flex",alignItems:"center",gap:10}}><div style={{fontSize:13,fontWeight:800}}>{filledCount}<span style={{color:t.sub,fontWeight:600}}>/11</span></div>{allFull&&<button onClick={runSeason} data-sfx="select" style={{background:"linear-gradient(135deg,#5de0c4,#3aa0ff)",border:"none",borderRadius:12,padding:"10px 16px",color:"#06121f",fontWeight:900,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",gap:6,boxShadow:"0 6px 18px rgba(93,224,196,.35)"}}><Trophy size={16}/> Simulate season</button>}</div>
         </div>
+        {filledCount>=2&&<div style={{...glass,borderRadius:16,padding:"9px 14px",display:"flex",alignItems:"center",gap:13,flexWrap:"wrap"}}>
+          <div style={{display:"flex",alignItems:"center",gap:9,flex:"1 1 220px",minWidth:180}}>
+            <span style={{fontSize:10,fontWeight:800,color:t.sub,letterSpacing:1,flexShrink:0}}>CHEMISTRY</span>
+            <div style={{flex:1,height:8,borderRadius:6,background:t.chip,overflow:"hidden",minWidth:50}}><div style={{height:"100%",width:liveChem.score+"%",borderRadius:6,background:liveChem.score>=70?"linear-gradient(90deg,#9b8cff,#5de0c4)":liveChem.score>=40?"linear-gradient(90deg,#9b8cff,#7aa0ff)":"linear-gradient(90deg,#8a7fd0,#6b6fb0)",transition:"width .3s"}}/></div>
+            <span style={{fontSize:15,fontWeight:900,color:liveChem.score>=70?accT:t.text,minWidth:24,textAlign:"right"}}>{liveChem.score}</span>
+          </div>
+          <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
+            {liveChem.clubGroups.slice(0,2).map(g=><span key={g.club} style={{fontSize:10,fontWeight:800,padding:"2px 7px",borderRadius:7,background:"rgba(93,224,196,.18)",color:dark?"#5de0c4":"#0a7a63",display:"inline-flex",alignItems:"center",gap:3}}><Badge code={g.club} size={12}/> {g.n}× {CLUBS[g.club].name}</span>)}
+            {liveChem.leagueGroups[0]&&liveChem.leagueGroups[0].n>=4&&<span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:7,background:t.chip,color:t.sub}}>{liveChem.leagueGroups[0].n}× {liveChem.leagueGroups[0].league}</span>}
+            {liveChem.icons>0&&<span style={{fontSize:10,fontWeight:800,padding:"2px 7px",borderRadius:7,background:"rgba(255,216,107,.2)",color:dark?"#ffd86b":"#a6791b"}}>★ {liveChem.icons} icon{liveChem.icons>1?"s":""}</span>}
+            {liveChem.isolated>0&&<span style={{fontSize:10,fontWeight:800,padding:"2px 7px",borderRadius:7,background:"rgba(255,140,107,.18)",color:"#ff8c6b"}}>{liveChem.isolated} no link</span>}
+          </div>
+        </div>}
         <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"minmax(0,1.15fr) minmax(0,1fr)",gap:14,alignItems:"start"}}>
           {/* PITCH */}
           <div style={{...glass,borderRadius:24,padding:"16px 10px",minHeight:470,position:"relative",background:dark?"linear-gradient(160deg, rgba(30,80,60,.3), rgba(255,255,255,.05))":"linear-gradient(160deg, rgba(140,210,170,.35), rgba(255,255,255,.5))"}}>
@@ -804,7 +864,8 @@ export default function App(){
                 if(highlight&&!s.player){const fc=fitClass(highlight,s.role);ring=fc==="best"?"#5de0c4":fc==="ok"?"#ffd86b":fc === 'cross'? '#ff9f43':fc==="unit"?"#9b8cff":null;}
                 else if(moving&&s.player&&s.idx!==moving.idx&&fitClass(moving.player,s.role)&&fitClass(s.player,moving.role)){ring="#c08cff";}
                 return(
-                <div key={s.idx} onClick={()=>placeInSlot(s)} style={{flex:"1 1 0",minWidth:0,maxWidth:74,minHeight:74,borderRadius:13,cursor:"pointer",padding:"6px 4px",textAlign:"center",overflow:"hidden",border:ring?"2px solid "+ring:"1.5px "+(s.player?"solid":"dashed")+" "+t.glassB,background:s.player?(dark?"rgba(255,255,255,.1)":"rgba(255,255,255,.72)"):ring?ring+"22":"transparent",boxShadow:ring?"0 0 14px "+ring+"66":"none",transition:"all .15s"}}>
+                <div key={s.idx} onClick={()=>placeInSlot(s)} style={{position:"relative",flex:"1 1 0",minWidth:0,maxWidth:74,minHeight:74,borderRadius:13,cursor:"pointer",padding:"6px 4px",textAlign:"center",overflow:"hidden",border:ring?"2px solid "+ring:"1.5px "+(s.player?"solid":"dashed")+" "+t.glassB,background:s.player?(dark?"rgba(255,255,255,.1)":"rgba(255,255,255,.72)"):ring?ring+"22":"transparent",boxShadow:ring?"0 0 14px "+ring+"66":"none",transition:"all .15s"}}>
+                  {s.player&&<span title={liveChem.perId[s.player.id]>0||s.player.ic?"linked":"no chemistry link"} style={{position:"absolute",top:5,right:5,width:7,height:7,borderRadius:"50%",background:(liveChem.perId[s.player.id]>0||s.player.ic)?"#5de0c4":"#ff8c6b",boxShadow:"0 0 5px "+((liveChem.perId[s.player.id]>0||s.player.ic)?"#5de0c4":"#ff8c6b")}}/>}
                   <div style={{fontSize:9.5,fontWeight:800,color:t.sub}}>{s.role}</div>
                   {s.player?(<>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:2,marginTop:2}}><div style={{fontSize:11,fontWeight:800,lineHeight:1.05,maxWidth:"100%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cn(s.player.n).split(" ").slice(-1)[0]}</div></div>
@@ -889,6 +950,20 @@ export default function App(){
           <div style={{display:"flex",flexWrap:"wrap",gap:4}}>{result.log.map((m,i)=><div key={i} title={m.gf+"-"+m.ga} style={{width:22,height:22,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,color:"#06121f",background:m.res==="W"?"#5de0c4":m.res==="D"?"#ffd86b":"#ff5d8f"}}>{m.res}</div>)}</div>
           <div style={{display:"flex",gap:14,marginTop:14}}>{([["Attack",result.units.att],["Midfield",result.units.mid],["Defence",result.units.def],["Keeper",result.units.gk]] as [string,number][]).map(([l,val])=>{const pct=Math.max(5,Math.min(100,Math.round(val/95*100)));return<div key={l} style={{flex:1}}><div style={{display:"flex",justifyContent:"space-between",fontSize:11.5,color:t.sub,marginBottom:4}}><span>{l}</span><span style={{fontWeight:800,color:t.text}}>{Math.round(val)}</span></div><div style={{height:5,borderRadius:4,background:t.chip,overflow:"hidden"}}><div style={{width:pct+"%",height:"100%",background:pct>80?"#5de0c4":pct>62?"#9b8cff":"#ff8c6b"}}/></div></div>;})}</div>
         </div>
+        {moments.length>0&&<div style={{...glass,borderRadius:20,padding:"16px 18px"}}>
+          <div style={{fontSize:12.5,fontWeight:800,color:t.sub,marginBottom:13}}>SEASON MOMENTS</div>
+          <div style={{display:"flex",flexDirection:"column",gap:11}}>
+            {moments.map((m,i)=>{const tc=({gold:"#ffd86b",green:"#5de0c4",red:"#ff5d8f",blue:"#9b8cff"} as Record<string,string>)[m.tone];return(
+              <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+                <div style={{flexShrink:0,width:40,textAlign:"center"}}><div style={{fontSize:8.5,fontWeight:800,color:t.sub,letterSpacing:.5}}>MD</div><div style={{fontSize:17,fontWeight:900,color:tc,lineHeight:1}}>{m.md}</div></div>
+                <div style={{flex:1,borderLeft:"2px solid "+tc,paddingLeft:12}}>
+                  <div style={{fontSize:10,fontWeight:800,color:tc,textTransform:"uppercase",letterSpacing:.4}}>{m.tag}</div>
+                  <div style={{fontSize:12.5,color:t.text,marginTop:2,lineHeight:1.45}}>{m.line}</div>
+                </div>
+              </div>
+            );})}
+          </div>
+        </div>}
         <div style={{...glass,borderRadius:20,padding:"16px 18px"}}>
           <div style={{fontSize:12.5,fontWeight:800,color:t.sub,marginBottom:10}}>YOUR XI · {formation}</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:8}}>{slots.map(s=><div key={s.idx} style={{...glass,boxShadow:"none",borderRadius:11,padding:"8px 10px", textAlign: 'center'}}><span style={{fontSize:9.5,fontWeight:800,color:t.sub}}>{s.role}</span><div style={{fontSize:12.5,fontWeight:700,display:"flex",alignItems:"center", justifyContent: "center",gap:4}}>{s.player?cn(s.player.n):"—"}</div></div>)}</div>
